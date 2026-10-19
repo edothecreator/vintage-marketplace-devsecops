@@ -16,10 +16,26 @@ useDefault = true
 
 [[rules]]
 id = "gemini-api-key"
-description = "Google Gemini / Google AI Studio API key"
-# Google API keys begin with AIza followed by 35 url-safe characters.
+description = "Google Gemini / AI Studio API key (legacy AIza format)"
+# Historic Google API key format: AIza + 35 url-safe characters.
 regex = '''AIza[0-9A-Za-z\-_]{35}'''
 tags = ["key", "google", "gemini"]
+
+[[rules]]
+id = "gemini-api-key-v2"
+description = "Google Gemini / AI Studio API key (AQ. prefixed format)"
+# Newer AI Studio keys use an "AQ." prefix followed by a long url-safe body.
+# ADDED AFTER A REAL MISS: the original AIza-only rule did NOT match a key in
+# this format. A key of this shape committed to this PUBLIC repository would
+# have passed the control silently. Verified against a synthetic key.
+regex = '''AQ\.[A-Za-z0-9_\-]{30,}'''
+tags = ["key", "google", "gemini"]
+
+[[rules]]
+id = "google-oauth-client-secret"
+description = "Google OAuth client secret"
+regex = '''GOCSPX-[A-Za-z0-9_\-]{20,}'''
+tags = ["key", "google", "oauth"]
 
 [[rules]]
 id = "generic-jwt-secret-assignment"
