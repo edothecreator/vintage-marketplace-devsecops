@@ -3,30 +3,329 @@
 \label{chap:modelisation}
 % ===========================================================================
 
-\begin{constat}{chapitre à rédiger --- phase 1}
-Ce chapitre documentera les livrables de la phase~1, qui ne produit
-volontairement aucun code applicatif.
+\section{Positionnement de la phase}
 
-Contenu prévu :
-\begin{itemize}
-  \item \pid{P7} modélisation des menaces : analyse STRIDE par flux de données,
-  réalisée avec OWASP Threat Dragon~\cite{threatdragon} ;
-  \item table de traçabilité menace $\rightarrow$ mesure d'atténuation
-  $\rightarrow$ exigence ASVS ;
-  \item \pid{P23} analyse de risques : cotation vraisemblance $\times$ impact,
-  priorisation des contrôles, risques explicitement acceptés ;
-  \item \pid{P24} recueil des exigences de sécurité : niveau ASVS visé
-  (niveau~1 complet et niveau~2 ciblé sur les chapitres V2, V4, V5, V6, V8, V13
-  et V16), avec justification écrite des exclusions (V10 et V17) ;
-  \item décisions de sécurité documentées exigées par l'ASVS~5.0 : règles de
-  validation, règles d'autorisation, types de fichiers autorisés, durées de
-  session, politique de mot de passe, niveaux de protection des données,
-  inventaire de journalisation, calendrier de rotation des secrets ;
-  \item classification des données et exigences de protection associées ;
-  \item correspondance entre les risques du Top~10 OWASP pour les applications
-  LLM et les contrôles prévus.
-\end{itemize}
+Cette phase ne produit \textbf{aucun code applicatif}. Elle livre trois
+documents de conception et trois registres de décisions, tous antérieurs à la
+première ligne d'implémentation.
 
-Registres de décisions attendus : ADR~0005 (niveau ASVS), ADR~0006 (décisions
-de sécurité documentées), ADR~0007 (périmètre de l'augmentation par IA).
+Ce séquencement n'est pas une préférence méthodologique mais une conséquence de
+la taxonomie retenue. La pratique \pid{P7} \emph{Threat modelling} appartient à
+la phase \emph{Plan} du cycle de vie DevSecOps~\cite{prates2025}. Produire un
+modèle de menaces après l'écriture du code en inverserait la fonction : il
+servirait à décrire des contrôles existants au lieu d'en prescrire. La
+chronologie des commits du dépôt en fait foi.
+
+\begin{table}[H]
+\centering
+\caption{Livrables de la phase 1}
+\label{tab:livrables-p1}
+\small
+\begin{tabular}{@{}llp{6.1cm}@{}}
+\toprule
+\textbf{Livrable} & \textbf{Pratique} & \textbf{Contenu} \\
+\midrule
+Architecture et flux & \pid{P7} \pid{P24}
+& Composants, 4 frontières de confiance, 9 flux de données \\
+Classification des données & \pid{P24} \pid{P23}
+& 4 niveaux de protection, exigences par niveau \\
+Modèle de menaces & \pid{P7}
+& \textbf{57 menaces} STRIDE tracées vers l'ASVS \\
+Analyse de risques & \pid{P23}
+& Cotation, priorisation, ordre de construction \\
+ADR 0005 & \pid{P24} & Niveau ASVS visé et exclusions justifiées \\
+ADR 0006 & \pid{P24} & Décisions de sécurité documentées \\
+ADR 0007 & --- & Périmètre de l'augmentation par IA \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Frontières de confiance}
+
+Quatre frontières ont été identifiées. La troisième mérite une attention
+particulière car elle est fréquemment omise dans les projets intégrant un
+modèle de langage.
+
+\begin{table}[H]
+\centering
+\caption{Frontières de confiance}
+\label{tab:frontieres}
+\small
+\begin{tabular}{@{}llp{7.3cm}@{}}
+\toprule
+\textbf{Réf.} & \textbf{Frontière} & \textbf{Conséquence} \\
+\midrule
+TB1 & Client $\leftrightarrow$ API
+& Toute donnée issue du client est non fiable ; validation obligatoire en
+couche de service de confiance (\asvsc{2.2.2}) \\
+\addlinespace
+TB2 & API $\leftrightarrow$ Données
+& L'API est le seul point d'accès ; la propriété des ressources est résolue
+côté serveur (\asvsc{8.3.1}) \\
+\addlinespace
+TB3 & API $\leftrightarrow$ Gemini
+& Sortie hors du périmètre de contrôle ; aucun secret transmis, sortie du
+modèle traitée comme entrée non fiable \\
+\addlinespace
+TB4 & CI/CD $\leftrightarrow$ Préproduction
+& Chaîne d'approvisionnement logicielle ; contrôles obligatoires avant
+déploiement \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{constat}{le fournisseur de modèle est un tiers}
+La frontière TB3 est une frontière de confiance au sens plein. Ce qui est
+transmis au fournisseur quitte notre contrôle, et ce qu'il renvoie constitue
+une entrée non fiable au même titre qu'une saisie utilisateur.
+
+Cette qualification explicite conditionne deux contrôles du
+chapitre~\ref{chap:ia} : l'exclusion de tout secret et de toute donnée
+personnelle des invites (\llm{06}), et l'assainissement systématique de la
+sortie du modèle avant stockage ou restitution (\llm{02}).
 \end{constat}
+
+\captureaplacer{figures/architecture-composants.png}{Diagramme de composants et
+frontières de confiance. Source Mermaid disponible dans
+\texttt{docs/threat-model/01-architecture.md}, à exporter en PNG.}
+
+\section{Modélisation STRIDE}
+
+\subsection{Méthode}
+
+La méthode STRIDE a été appliquée flux par flux. Chaque menace identifiée porte
+un identifiant, une catégorie STRIDE, une mesure d'atténuation, \textbf{une
+exigence ASVS} et un mécanisme de vérification prévu.
+
+\begin{decision}{traçabilité vers l'ASVS}
+Chacune des 57 menaces est reliée à une exigence ASVS précise.
+
+Cette colonne n'est pas documentaire. C'est elle qui relie le modèle de menaces
+aux exigences vérifiables, puis aux cas d'abus de la phase 3, puis aux preuves
+du rapport. Sans elle, un modèle de menaces reste un document sans
+prolongement : il décrit des risques sans établir comment on saura qu'ils sont
+traités.
+\end{decision}
+
+\subsection{Résultats}
+
+\begin{table}[H]
+\centering
+\caption{Répartition des 57 menaces par catégorie STRIDE}
+\label{tab:stride}
+\small
+\begin{tabular}{@{}llc@{}}
+\toprule
+\textbf{Catégorie} & \textbf{Propriété violée} & \textbf{Menaces} \\
+\midrule
+Spoofing                & Authentification   & 3 \\
+Tampering               & Intégrité          & 18 \\
+Repudiation             & Non-répudiation    & 3 \\
+Information disclosure  & Confidentialité    & 14 \\
+Denial of service       & Disponibilité      & 7 \\
+Elevation of privilege  & Autorisation       & 12 \\
+\midrule
+\textbf{Total}          &                    & \textbf{57} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La prédominance des catégories \emph{Tampering} (18) et \emph{Elevation of
+privilege} (12) est cohérente avec la nature du système : une place de marché
+repose sur la propriété des ressources et sur une logique métier à valeur
+marchande.
+
+\subsection{Les deux menaces structurantes}
+
+Deux menaces ont orienté l'ensemble de la conception.
+
+\paragraph{T14 --- Un vendeur modifie l'annonce d'un autre vendeur.}
+Référence directe aux catégories IDOR et BOLA (\asvsc{8.2.2}). Cotée en
+vraisemblance maximale car exploitable par tout utilisateur authentifié par
+simple modification d'un identifiant dans une requête, sans compétence
+particulière ni outil.
+
+Cette menace est la raison pour laquelle l'intergiciel d'autorisation est le
+premier composant construit en phase~2, \emph{avant} les fonctionnalités qu'il
+protège. L'ordre inverse --- écrire les routes puis y ajouter l'autorisation ---
+est le mécanisme même par lequel les IDOR apparaissent : il subsiste toujours
+une route où l'ajout a été omis.
+
+\paragraph{T28 --- Double vente d'un article unique.}
+Deux acheteurs passent commande du même objet dans la même fenêtre de quelques
+millisecondes (\asvsc{2.3.4}). La vraisemblance est cotée moyenne, mais l'impact
+est maximal : les articles vintage étant \textbf{uniques par nature}, la
+défaillance est irréparable. On ne peut ni réapprovisionner, ni proposer un
+équivalent. Il s'agit d'une perte d'intégrité métier définitive et non d'un
+écart d'inventaire.
+
+C'est la particularité de sécurité qui distingue cette place de marché d'un
+commerce de biens en stock, et elle est vérifiée par un test de concurrence
+réel, non par deux requêtes séquentielles.
+
+\section{Analyse de risques}
+
+\subsection{Cotation et répartition}
+
+Le risque est coté comme le produit de la vraisemblance et de l'impact, chacun
+sur une échelle de 1 à 3.
+
+\begin{table}[H]
+\centering
+\caption{Répartition des risques}
+\label{tab:repartition-risques}
+\small
+\begin{tabular}{@{}lccl@{}}
+\toprule
+\textbf{Niveau} & \textbf{Score} & \textbf{Nombre} & \textbf{Part} \\
+\midrule
+Critique & $\geq 9$ & 8  & 14 \% \\
+Élevé    & 6--8     & 18 & 32 \% \\
+Moyen    & 3--4     & 18 & 32 \% \\
+Faible   & $\leq 2$ & 13 & 23 \% \\
+\midrule
+\textbf{Total} & & \textbf{57} & \textbf{100 \%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Un risque faible n'est pas un risque non traité : toutes les menaces disposent
+d'une mesure d'atténuation. Le score détermine l'\emph{ordre} de construction,
+non l'inclusion.
+
+\subsection{Conséquence sur l'ordre de réalisation}
+
+L'analyse de risques dicte directement la séquence de la phase~2 : intergiciel
+d'autorisation, puis accès paramétré aux données, puis validation et listes
+d'autorisation de champs, puis authentification, puis téléversement, puis
+transaction de commande verrouillée, puis assainissement en restitution, puis
+limitation de débit, puis en-têtes et gestion d'erreurs, enfin journalisation.
+
+\section{Niveau de vérification ASVS retenu}
+
+\subsection{Décision}
+
+\begin{decision}{niveau 1 complet et niveau 2 ciblé (registre ADR 0005)}
+Le niveau~1 de l'ASVS est visé dans son intégralité. Le niveau~2 est visé sur
+les chapitres où une place de marché porte un risque réel : \textbf{V2}
+validation et logique métier, \textbf{V4} API, \textbf{V5} gestion des
+fichiers, \textbf{V6} authentification (hors exigence 6.3.3), \textbf{V8}
+autorisation, \textbf{V13} configuration et \textbf{V16} journalisation.
+
+La correspondance entre ces chapitres et les menaces critiques du modèle est
+directe, ce qui rend la priorisation traçable plutôt qu'arbitraire.
+\end{decision}
+
+\subsection{Exclusions justifiées}
+
+L'ASVS demande que le rapport de vérification énonce ce qui a été \emph{inclus}
+et justifie les exclusions~\cite{owaspasvs5}. Deux chapitres entiers sont exclus.
+
+\textbf{V10 --- OAuth et OIDC.} Le périmètre fonctionnel ne comporte aucune
+authentification fédérée. L'ASVS cite nommément OAuth parmi les chapitres
+pouvant être ignorés lorsqu'il n'est pas utilisé. Cette exclusion découle d'une
+décision de périmètre assumée : ne pas intégrer de fournisseur d'identité
+externe permet d'écarter un chapitre entier de manière défendable, plutôt que
+de l'implémenter superficiellement.
+
+\textbf{V17 --- WebRTC.} Aucune communication temps réel. L'ASVS restreint ce
+chapitre aux systèmes hébergeant leurs propres serveurs TURN, média ou de
+signalisation.
+
+\subsection{Exception documentée : l'authentification multifacteur}
+
+L'exigence \asvs{6.3.3} impose l'authentification multifacteur à partir du
+niveau~2. Le niveau~2 est revendiqué sur le chapitre V6 \textbf{à l'exception de
+cette exigence}.
+
+\begin{constat}{une faiblesse assumée plutôt que dissimulée}
+L'ASVS est explicite : tout assouplissement des exigences de MFA doit être
+accompagné d'un plan clair d'atténuation des risques d'authentification.
+
+Les contrôles compensatoires retenus sont la limitation de débit par compte et
+par adresse (\asvsc{6.3.1}), la vérification des mots de passe contre un corpus
+de mots de passe fuités (\asvsc{6.2.12}), des messages d'erreur génériques
+empêchant l'énumération de comptes (\asvsc{6.3.8}), et la rotation des jetons de
+rafraîchissement avec détection de réutilisation (\asvsc{7.4.1}).
+
+Le motif de l'exception est le suivant : une MFA partielle est moins sûre qu'une
+absence assumée. Elle suppose la gestion du cycle de vie du secret partagé, des
+codes de récupération et de la perte de facteur. Implémentée à moitié, elle
+produirait notamment une procédure de récupération contournant la MFA, ce que
+l'ASVS interdit explicitement (\asvsc{6.4.3}).
+
+Cette exception figure au chapitre~\ref{chap:limites} parmi les limites du
+travail, et constitue la perspective d'amélioration la plus immédiate.
+\end{constat}
+
+\section{Décisions de sécurité documentées}
+
+L'ASVS~5.0 introduit une catégorie d'exigences absente de la version 4.x : les
+décisions de sécurité documentées. Le raisonnement du référentiel est que
+certaines exigences supposent des règles variant d'une application à l'autre,
+que l'ASVS ne peut prescrire génériquement, et que sans décision écrite les
+exigences de mise en œuvre correspondantes ne sont pas vérifiables.
+
+Le registre ADR~0006 consigne ces décisions avant implémentation. Il couvre les
+règles de validation champ par champ (\asvsc{2.1.1}), la cohérence contextuelle
+des données combinées (\asvsc{2.1.2}), les limites de logique métier
+(\asvsc{2.1.3}), les règles d'autorisation aux trois niveaux fonction, donnée et
+champ (\asvsc{8.1.1}, \asvsc{8.1.2}), les caractéristiques des fichiers acceptés
+(\asvsc{5.1.1}), les durées de session et leur justification (\asvsc{7.1.1}), la
+politique de mot de passe et d'anti-automatisation (\asvsc{6.1.1}), l'inventaire
+de journalisation (\asvsc{16.1.1}), le calendrier de rotation des secrets
+(\asvsc{13.1.4}) et les besoins de communication externe (\asvsc{13.1.1}).
+
+\begin{constat}{absence de surface SSRF}
+L'inventaire des besoins de communication fait apparaître un résultat utile :
+le serveur n'appelle aucun emplacement externe fourni par l'utilisateur. Le seul
+appel sortant est l'API Gemini, vers une adresse fixe.
+
+Il n'existe donc \textbf{aucune surface de falsification de requête côté
+serveur} dans le périmètre retenu. Ce constat est une conséquence de la
+conception et non un contrôle à implémenter ; il est consigné à ce titre.
+\end{constat}
+
+\section{Outil retenu pour la pratique P7}
+
+L'outil retenu est \textbf{OWASP Threat Dragon}~\cite{threatdragon}, cité dans
+le tableau~8 de Prates et Pereira avec 6 mentions, ce qui rattache ce choix à la
+source scientifique du module.
+
+La substance du modèle --- flux, frontières, 57 menaces, atténuations,
+traçabilité ASVS --- est rédigée dans `docs/threat-model/`. La saisie dans
+l'outil et l'export du diagramme constituent une tâche distincte, confiée à un
+membre de l'équipe et faisant l'objet d'une \emph{pull request} revue, ce qui
+produit simultanément une preuve pour \pid{P9} et \pid{P11}.
+
+\captureaplacer{figures/threat-model-dfd.png}{Diagramme de flux de données annoté
+des menaces, exporté depuis OWASP Threat Dragon.}
+
+\section{Bilan de la phase}
+
+\begin{table}[H]
+\centering
+\caption{État d'avancement à l'issue de la phase 1}
+\label{tab:bilan-phase1}
+\small
+\begin{tabular}{@{}llp{6.4cm}@{}}
+\toprule
+\textbf{Livrable} & \textbf{État} & \textbf{Observation} \\
+\midrule
+Architecture et flux de données & \fait{} & 9 flux, 4 frontières \\
+Classification des données      & \fait{} & 4 niveaux, exigences par niveau \\
+Modèle de menaces STRIDE        & \fait{} & 57 menaces, toutes tracées vers l'ASVS \\
+Analyse de risques              & \fait{} & Priorisation de la phase 2 établie \\
+ADR 0005 niveau ASVS            & \fait{} & Exclusions V10 et V17 justifiées \\
+ADR 0006 décisions documentées  & \fait{} & 10 catégories de décisions \\
+ADR 0007 périmètre IA           & \fait{} & 4 risques LLM applicables \\
+Saisie dans Threat Dragon       & \encours{} & Tâche T01, déléguée \\
+Export des diagrammes en PNG    & \encours{} & Source Mermaid disponible \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+L'analyse est achevée et la phase~2 peut commencer : son ordre de réalisation
+est désormais dicté par l'analyse de risques et non par une intuition. Restent
+à produire les artefacts graphiques, qui relèvent de la saisie et non de la
+conception.
