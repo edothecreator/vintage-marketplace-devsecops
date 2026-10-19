@@ -20,13 +20,21 @@
 | Mobile application | **Deferred** to a second phase, after web is complete | `docs/web-app-attack-plan.txt` §11 |
 | Repository strategy | Fresh repository (not a reset of the old one) | this file |
 
+## Repository
+
+- **URL:** https://github.com/edothecreator/vintage-marketplace-devsecops
+- **Visibility:** public — see `docs/adr/0004` for why (branch protection and
+  unmetered Actions minutes are unavailable on free private repositories)
+- **Owner:** `@edothecreator` — Mohamed ELKHANFAF
+- **Collaborators (push):** `@erraguibiabdelilah`, `@Hanane-ELFADIL`, `@anasIRISI`
+
 ## Open decisions
 
 | Decision | Options | Blocking |
 |---|---|---|
-| Repository visibility | Private (clean secret demo) vs Public (unlimited Actions minutes) | Repo creation |
-| Repository name | Proposed: `vintage-marketplace-devsecops` | Repo creation |
-| Team task split | 4 members — see `docs/web-app-attack-plan.txt` §13 | Task brief authoring |
+| Enforce protection for admins | Currently `false` — owner can bypass. Stronger evidence if `true`, but risks lock-out | Nothing; can flip any time |
+| Team task split | 4 members — proposal in `.github/CODEOWNERS` | Task brief authoring |
+| GitHub Student Pack | Applied / not applied — would allow private + protection | Nothing |
 
 ---
 
@@ -79,25 +87,55 @@
       otherwise GitHub silently ignores the file and the control is fake.
       Verify with: `gh api repos/<owner>/<repo>/codeowners/errors`
 
-### Blocked on Mohamed
-- [ ] `gh auth login` — authenticate GitHub CLI
-- [ ] Decide repository visibility (private recommended)
-- [ ] Confirm repository name
-- [ ] Provide 3 collaborator GitHub usernames
-- [ ] Create repository and push
-- [ ] Enable branch protection on `main`:
-      require PR, require status checks, require 1 approving review,
-      no direct pushes, no force pushes
-- [ ] **Screenshot branch protection settings** → `evidence/P11-code-review/`
-- [ ] Obtain Gemini API key, record actual rate limits
+- [x] `gh auth login` — authenticated as `@edothecreator`
+- [x] `gh auth setup-git` — required; Git Credential Manager was hanging on a
+      non-displayable dialog. **Teammates will hit this too — put it in setup docs.**
+- [x] Repository created: `edothecreator/vintage-marketplace-devsecops`
+- [x] Pushed `main` (3 commits)
+- [x] 3 collaborators invited with push permission
+- [x] `CODEOWNERS` populated with verified real usernames (all 4 confirmed via API)
+- [x] Repository made public (ADR 0004)
+- [x] **Branch protection applied and verified live on `main`:**
+      1 approving review, code-owner review required, stale reviews dismissed,
+      last-push approval required, 3 required status checks (strict),
+      no force pushes, no deletions, conversation resolution required
+- [x] CI run #1 green — all 3 job names match the required check contexts exactly
+- [x] ADR 0004 — public visibility decision + Phase 9 V2 mitigation
+- [x] `.gitleaks.toml` updated: V2 demo must use the JWT-secret pattern,
+      **not** a Google API key (GitHub push protection would block the push)
+
+### Blocked on Mohamed — to close Phase 0
+- [ ] **Chase the three collaborators to ACCEPT their invitations.**
+      Until they do, `CODEOWNERS` reports 10 errors and code-owner review does
+      not function. Verify clean with:
+      `gh api repos/edothecreator/vintage-marketplace-devsecops/codeowners/errors`
+- [ ] **Screenshot branch protection settings page** → `evidence/P11-code-review/01-branch-protection.png`
+      (Settings → Branches → main. Only an admin can capture this; it is the
+      sole proof the control is actually switched on.)
+- [ ] **Screenshot the green CI run** → `evidence/P6-continuous-integration/01-first-pipeline-run.png`
+- [ ] **Screenshot the collaborators page** → `evidence/P9-collaboration/01-collaborators.png`
+- [ ] Obtain Gemini API key, record actual observed rate limits
+- [ ] Decide whether to set `enforce_admins = true`
 
 ---
 
 ## Evidence captured so far
 
-| Practice | Artefact | Location |
-|---|---|---|
-| — | none yet | — |
+| Practice | Artefact | Location | Status |
+|---|---|---|---|
+| P6 | CI workflow definition | `.github/workflows/ci.yml` | in repo |
+| P6 | First green pipeline run | GitHub Actions run #1 | **screenshot needed** |
+| P8 | Pre-commit configuration | `.pre-commit-config.yaml` | in repo |
+| P8 | Gitleaks rules verified against planted secrets | Phase 0 verification | **re-capture as terminal output** |
+| P9 | CODEOWNERS with real usernames | `.github/CODEOWNERS` | in repo |
+| P9 | Collaborators configured | GitHub settings | **screenshot needed** |
+| P11 | PR template with security checklist | `.github/pull_request_template.md` | in repo |
+| P11 | Branch protection active on `main` | GitHub settings + `.github/branch-protection.json` | **screenshot needed** |
+| P30 | Gitleaks configuration | `.gitleaks.toml` | in repo |
+
+> Settings screenshots cannot be produced from the command line. They are the
+> only proof that a platform control is switched on, and must be captured by a
+> repository administrator.
 
 ---
 

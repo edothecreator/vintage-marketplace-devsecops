@@ -65,7 +65,29 @@ regexes = [
   '''(?i)test[_-]?(only|fixture|value)''',
 ]
 
-# NOTE for Phase 9 (deliberate vulnerability demonstration V2):
-# The V2 demo plants a fake API key so Gitleaks detects it and fails the build.
-# That key must NOT match any allowlist entry above, or the demo silently passes.
-# Verify locally with:  gitleaks detect --no-git --verbose
+# ---------------------------------------------------------------------------
+# NOTE for Phase 9 (deliberate vulnerability demonstration V2)
+# ---------------------------------------------------------------------------
+# V2 plants a hardcoded secret so Gitleaks detects it and fails the build,
+# producing the Detection -> Result -> Corrective action chain.
+#
+# The repository is PUBLIC (see docs/adr/0004), so GitHub's own secret-scanning
+# push protection is active. It recognises provider-specific patterns and would
+# REJECT THE PUSH before our pipeline ever runs, pre-empting the demonstration.
+#
+#   DO NOT use a Google API key (AIza...) for V2 - GitHub blocks it.
+#   DO     use the hardcoded JWT signing secret pattern instead:
+#            rule  generic-jwt-secret-assignment
+#            e.g.  jwtSecret: "<any 8+ char string>"
+#          or the inline DB credential pattern:
+#            rule  hardcoded-db-url
+#
+# Both were verified in Phase 0 against a planted test file: each rule fired
+# correctly with the secret redacted in output.
+#
+# The planted value must NOT match any allowlist entry above, or the demo
+# silently passes and proves nothing.
+#
+# Verify locally before relying on it:
+#   python -m pre_commit run gitleaks --all-files
+#   gitleaks detect --no-git --verbose
