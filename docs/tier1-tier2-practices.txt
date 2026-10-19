@@ -1,0 +1,260 @@
+===============================================================================
+ DEVSECOPS PRACTICES - TIER 1 AND TIER 2
+ Reference list for Projet 3 (JavaScript / Express.js ecosystem)
+===============================================================================
+
+ Student : ELKHANFAF Mohamed
+ Filiere : Cycle ingenieur IRISI 3 - FST Marrakech
+ Module  : Securite des applications et des services (2026/2027)
+ Projet  : Projet 3 - Pipeline DevSecOps augmentee par IA (ecosysteme JavaScript)
+
+-------------------------------------------------------------------------------
+ SOURCE OF THE TAXONOMY
+-------------------------------------------------------------------------------
+
+ Prates, L., Pereira, R. "DevSecOps practices and tools."
+ International Journal of Information Security, vol. 24, article 11 (2025).
+ DOI: https://doi.org/10.1007/s10207-024-00914-z
+ License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+ Method: Multivocal Literature Review (MLR) over 103 primary studies
+         (49% white literature / 51% grey literature).
+ Result: 39 distinct DevSecOps practices identified.
+
+ HOW THE TIERS ARE DEFINED (paper, section 7.1 / Table 7):
+   Tier 1 - "Core"         : practices mentioned in 30 or more publications
+   Tier 2 - "Important"    : practices mentioned in 10 to 29 publications
+   Tier 3 - "Nice to have" : practices mentioned in fewer than 10 publications
+
+ The tier of a practice therefore reflects how established it is in the
+ literature, NOT whether it is automatable or where it sits in the pipeline.
+
+===============================================================================
+ TIER 1 - CORE PRACTICES  (MANDATORY FOR THIS PROJECT - 11 practices)
+===============================================================================
+
+ ID   PRACTICE                      MENTIONS   LIFECYCLE PHASE
+ ---  ----------------------------  ---------  --------------------------------
+ P1   SAST                                65   Verify
+ P2   DAST                                58   Verify
+ P3   Automated security testing          56   Verify
+ P4   Vulnerability scanning              44   Verify / Preproduction
+ P5   Continuous monitoring               41   Predict / Detect
+ P6   Continuous integration              41   Adapt
+ P7   Threat modelling                    40   Plan / Predict
+ P8   Shift left security                 36   Create
+ P9   Collaboration                       36   Create
+ P10  Continuous deployment               34   Release
+ P11  Code review                         33   Verify
+
+ SHORT DEFINITIONS (paraphrased from the paper, section 7.1)
+
+ P1  SAST - Static Application Security Testing
+     Analysis of source code, bytecode or binary code to find security
+     vulnerabilities without executing the program.
+
+ P2  DAST - Dynamic Application Security Testing
+     Testing a running application from the outside by sending requests and
+     analysing responses, simulating real attacks.
+
+ P3  Automated security testing
+     Use of automated tools and processes to systematically verify security at
+     various development stages. Covers API testing, web application testing
+     and unit testing with a security focus. NOTE: this is distinct from
+     SAST and DAST and is the third most cited practice overall.
+
+ P4  Vulnerability scanning
+     Continuous automated identification of vulnerabilities in software AND
+     infrastructure, matched against known CVE databases. Per the paper this
+     explicitly includes scanning software dependencies and container images.
+
+ P5  Continuous monitoring
+     Ongoing automated tracking, collection and analysis of performance and
+     security data from running systems, giving real-time visibility.
+
+ P6  Continuous integration
+     Automatic and continuous integration of code changes into a shared
+     repository, with automated build, test, validation and security checks.
+
+ P7  Threat modelling
+     Systematic, proactive identification and assessment of potential threats
+     by analysing the design, architecture and functionality of the system.
+
+ P8  Shift left security
+     Integrating security considerations and activities as early as possible in
+     the development lifecycle rather than at the end.
+
+ P9  Collaboration
+     Cross-team collaboration between development, operations and security
+     teams; breaking down silos to create a security-aware culture.
+
+ P10 Continuous deployment
+     Code changes are automatically built, tested and deployed to production,
+     with security checks integrated throughout the automated pipeline.
+
+ P11 Code review
+     Systematic examination of code by peers or experts to find defects,
+     vulnerabilities and quality problems before merge.
+
+ IMPORTANT OBSERVATION
+     Four of the eleven Tier 1 practices are NOT tool/scanner based:
+     P7 Threat modelling, P8 Shift left security, P9 Collaboration and
+     P11 Code review. Evidence for these is process evidence (documents,
+     branch protection rules, review threads), not scan reports.
+
+===============================================================================
+ TIER 2 - IMPORTANT PRACTICES  (OPTIONAL - EACH ONE EARNS BONUS - 20 practices)
+===============================================================================
+
+ ID   PRACTICE                           MENTIONS   PLANNED FOR THIS PROJECT
+ ---  ---------------------------------  ---------  -------------------------
+ P12  Infrastructure as code                    28   YES
+ P13  SCA (Software Composition Analysis)       27   YES
+ P14  Security training                         27   YES (lightweight)
+ P15  VCS (Version Control System)              26   YES
+ P16  Penetration testing                       24   YES
+ P17  Continuous compliance                     22   YES
+ P18  Logging                                   21   YES
+ P19  IAST                                      18   NO (no free JS option)
+ P20  Secure coding                             18   YES
+ P21  Configuration management                  17   OPTIONAL
+ P22  Environment hardening                     16   YES
+ P23  Risk assessment                           15   YES
+ P24  Security requirement gathering            13   YES
+ P25  RASP                                      13   NO (time permitting)
+ P26  Security policies                         12   OPTIONAL
+ P27  Patch management                          12   YES
+ P28  Security incident management              11   YES (runbook)
+ P29  IAM                                       11   OPTIONAL
+ P30  Secrets management                        11   YES
+ P31  Security auditing                         11   OPTIONAL
+
+ SHORT DEFINITIONS (paraphrased from the paper, section 7.1)
+
+ P12 Infrastructure as code
+     Managing and provisioning infrastructure through code instead of manual
+     configuration, so the environment is version controlled and reproducible.
+
+ P13 SCA - Software Composition Analysis
+     Scanning and analysing third-party components and libraries used by the
+     application to find vulnerabilities and licensing issues.
+
+ P14 Security training
+     A structured educational programme that equips development and operations
+     teams with the skills and awareness to handle security concerns.
+
+ P15 VCS - Version Control System
+     Managing and tracking changes to code, configuration and infrastructure,
+     providing audit trails and controlled access.
+
+ P16 Penetration testing
+     Systematic, controlled simulation of cyberattacks to find exploitable
+     weaknesses in applications and infrastructure.
+
+ P17 Continuous compliance
+     Maintaining and verifying compliance with regulatory and security
+     requirements by integrating automated compliance checks into CI/CD.
+
+ P18 Logging
+     Recording events, actions and activities in the system to support
+     troubleshooting, malicious-activity detection and accountability.
+
+ P19 IAST - Interactive Application Security Testing
+     Runtime security testing via an agent inside the application that observes
+     real behaviour and reports vulnerabilities as they occur.
+
+ P20 Secure coding
+     Writing code with security in mind from the start: input validation, no
+     hard-coded credentials, safe handling of sensitive data.
+
+ P21 Configuration management
+     Systematically managing and controlling the configuration of software and
+     infrastructure so it stays consistent and aligned with security policy.
+
+ P22 Environment hardening
+     Proactively securing infrastructure environments through security
+     controls, access restrictions and configuration changes to shrink the
+     attack surface.
+
+ P23 Risk assessment
+     Identifying, evaluating and prioritising security risks so that security
+     investment can be ordered by probability and business impact.
+
+ P24 Security requirement gathering
+     Systematically identifying and documenting the security needs and
+     expectations for the system before it is built.
+
+ P25 RASP - Run-time Application Self-Protection
+     A protection engine embedded in the application runtime that detects and
+     blocks anomalous calls and behaviour representing an active attack.
+
+ P26 Security policies
+     Defining security and compliance requirements, either as written
+     guidelines or as machine-readable "policy as code" enforced in CI/CD.
+
+ P27 Patch management
+     Continuously identifying and applying software patches and updates to
+     reduce the exposure window to known vulnerabilities.
+
+ P28 Security incident management
+     The activities needed to handle security incidents: detection,
+     containment, recovery and post-incident review.
+
+ P29 IAM - Identity and Access Management
+     Managing digital identities, roles and permissions, and enforcing access
+     controls (MFA, principle of least privilege).
+
+ P30 Secrets management
+     Securely storing, managing, rotating and controlling access to sensitive
+     values such as API keys, credentials and encryption keys.
+
+ P31 Security auditing
+     Regularly reviewing and assessing development, deployment and security
+     practices against standards, policies and best practice.
+
+===============================================================================
+ TIER 3 - NICE TO HAVE  (listed for completeness - 8 practices)
+===============================================================================
+
+ ID   PRACTICE                      MENTIONS
+ ---  ----------------------------  --------
+ P32  Security champions                   8
+ P33  Red team                             8
+ P34  WAF (Web Application Firewall)       8
+ P35  Alerting                             7
+ P36  Continuous reporting                 6
+ P37  Software licensing                   3
+ P38  Chaos engineering                    3
+ P39  Bug bounties                         2
+
+ Cheap additions worth taking: P35 Alerting (comes with Prometheus/Grafana),
+ P34 WAF (ModSecurity in front of Express), P37 Software licensing (a single
+ setting in Dependency-Track).
+
+===============================================================================
+ NOTES THAT MATTER FOR THE REPORT
+===============================================================================
+
+ 1. SCA IS NOT TIER 1. It is Tier 2 (P13, 27 mentions). The Tier 1 practice
+    that covers dependency and container scanning is P4 "Vulnerability
+    scanning". Do not mislabel these in the report.
+
+ 2. SECRETS MANAGEMENT IS NOT TIER 1 either. It is Tier 2 (P30, 11 mentions).
+
+ 3. INFRASTRUCTURE AS CODE IS NOT TIER 1. It is Tier 2 (P12, 28 mentions),
+    just under the 30-mention threshold.
+
+ 4. The project brief (section 7) separately requires SAST, SCA, Secret
+    Scanning and DAST. SAST and DAST are Tier 1; SCA and Secrets Management
+    are Tier 2. Implementing all four therefore satisfies a mandatory brief
+    requirement AND earns Tier 2 bonus at the same time.
+
+ 5. Total check: 11 (Tier 1) + 20 (Tier 2) + 8 (Tier 3) = 39 practices.
+    This matches the paper's stated total.
+
+ 6. The paper is CC BY 4.0, so Table 7 may be reproduced in the report
+    provided the source is properly attributed.
+
+===============================================================================
+ END OF FILE
+===============================================================================

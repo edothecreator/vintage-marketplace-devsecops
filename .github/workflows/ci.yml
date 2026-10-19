@@ -1,0 +1,147 @@
+# ---------------------------------------------------------------------------
+# Continuous Integration — pipeline skeleton
+#
+# Practice: P6 Continuous integration (Tier 1, 41 mentions)
+#           P30 Secrets management (Tier 2) via the gitleaks job
+#
+# Phase 0 deliberately keeps this minimal but REAL: it must pass on an empty
+# project so that every subsequent commit is gated from the very first push.
+# Security stages (SAST, SCA, DAST, container scanning, abuse-case tests) are
+# added in Phase 5 as separate jobs.
+# ---------------------------------------------------------------------------
+
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop", "feat/**", "fix/**", "demo/**"]
+  pull_request:
+    branches: ["main", "develop"]
+  workflow_dispatch:
+
+# Least privilege by default. Jobs that need more must request it explicitly.
+permissions:
+  contents: read
+
+# A newer push to the same ref cancels the previous run, except on main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Secret scanning over the FULL history, not just the diff.
+  # The pre-commit hook catches secrets before they are committed; this job is
+  # the backstop for anything pushed from a clone without hooks installed.
+  # -------------------------------------------------------------------------
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/repo" \
+            zricethezav/gitleaks:v8.30.0 \
+            detect \
+              --source=/repo \
+              --config=/repo/.gitleaks.toml \
+              --report-format=sarif \
+              --report-path=/repo/gitleaks-report.sarif \
+              --redact \
+              --verbose
+
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.sarif
+          if-no-files-found: ignore
+          retention-days: 30
+
+  # -------------------------------------------------------------------------
+  # Repository hygiene: the same hooks developers run locally, enforced in CI.
+  # Guarantees the shift-left controls cannot be bypassed with --no-verify.
+  # -------------------------------------------------------------------------
+  hygiene:
+    name: Repository hygiene (pre-commit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Run pre-commit hooks
+        uses: pre-commit/action@v3.0.1
+
+  # -------------------------------------------------------------------------
+  # Build and test placeholder.
+  # Becomes the real backend build in Phase 2 and the abuse-case suite in
+  # Phase 3. Present now so branch protection has a stable check name to
+  # require from day one.
+  # -------------------------------------------------------------------------
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Detect application scaffold
+        id: detect
+        run: |
+          if [ -f backend/package.json ]; then
+            echo "scaffold=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "scaffold=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        if: steps.detect.outputs.scaffold == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        if: steps.detect.outputs.scaffold == 'true'
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint
+        if: steps.detect.outputs.scaffold == 'true'
+        working-directory: backend
+        run: npm run lint --if-present
+
+      - name: Type check
+        if: steps.detect.outputs.scaffold == 'true'
+        working-directory: backend
+        run: npm run typecheck --if-present
+
+      - name: Build
+        if: steps.detect.outputs.scaffold == 'true'
+        working-directory: backend
+        run: npm run build --if-present
+
+      - name: Test
+        if: steps.detect.outputs.scaffold == 'true'
+        working-directory: backend
+        run: npm test --if-present
+
+      - name: No scaffold yet
+        if: steps.detect.outputs.scaffold == 'false'
+        run: |
+          echo "backend/package.json not present — Phase 2 has not started."
+          echo "This job passes intentionally so branch protection has a"
+          echo "stable required check from Phase 0 onward."

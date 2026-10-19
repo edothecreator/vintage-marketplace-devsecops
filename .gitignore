@@ -1,0 +1,71 @@
+# ---- Node / JavaScript ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# ---- Environment & secrets ----
+# NEVER commit real secrets. Templates (*.example) are tracked on purpose.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+!secrets/.gitkeep
+
+# ---- Build & tooling caches ----
+.cache/
+.turbo/
+.parcel-cache/
+.next/
+.nuxt/
+.vite/
+.scannerwork/
+
+# ---- Test & scan output ----
+# Reports that belong in the report go into evidence/ deliberately,
+# not automatically. Raw tool scratch output is ignored.
+*.log
+.nyc_output/
+playwright-report/
+test-results/
+zap-wrk/
+trivy-cache/
+
+# ---- IDE / OS ----
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Terraform ----
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# ---- Python (tooling only: pre-commit) ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/

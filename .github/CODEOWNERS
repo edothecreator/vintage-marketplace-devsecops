@@ -1,0 +1,60 @@
+# CODEOWNERS
+# Practice: P9 Collaboration (Tier 1, 36 mentions)
+#           P11 Code review  (Tier 1, 33 mentions)
+#
+# Named owners per area make review a structural requirement rather than a
+# favour. Combined with branch protection ("Require review from Code Owners"),
+# this is the mechanism that evidences both practices.
+#
+# ---------------------------------------------------------------------------
+# !! PLACEHOLDER — REPLACE BEFORE ENABLING "Require review from Code Owners"
+# ---------------------------------------------------------------------------
+# GitHub silently ignores usernames that do not exist or are not collaborators,
+# which produces a file that LOOKS like a control but enforces nothing. Verify
+# after replacing:  gh api repos/<owner>/<repo>/codeowners/errors
+#
+# Replace the four placeholders below with real GitHub usernames:
+#   @OWNER-MOHAMED   -> Mohamed Elkhanfaf (repository owner)
+#   @MEMBER-2        -> teammate 2
+#   @MEMBER-3        -> teammate 3
+#   @MEMBER-4        -> teammate 4
+# ---------------------------------------------------------------------------
+
+# Default owner for anything not matched below.
+*                           @OWNER-MOHAMED
+
+# ---- Security-critical paths: owner review always required ----------------
+# Changes here can silently disable a control, so they are deliberately
+# routed to the person accountable for the pipeline.
+
+/.github/                   @OWNER-MOHAMED
+/.github/workflows/         @OWNER-MOHAMED
+/.gitleaks.toml             @OWNER-MOHAMED
+/.pre-commit-config.yaml    @OWNER-MOHAMED
+/SECURITY.md                @OWNER-MOHAMED
+/.gitignore                 @OWNER-MOHAMED
+
+# Authentication, authorization and cryptography are the highest-risk code in
+# the project. Two-person review is the intent here.
+/backend/src/auth/          @OWNER-MOHAMED @MEMBER-2
+/backend/src/middleware/    @OWNER-MOHAMED @MEMBER-2
+
+# ---- Feature areas --------------------------------------------------------
+
+/backend/                   @MEMBER-2 @OWNER-MOHAMED
+/frontend/                  @MEMBER-3
+/backend/tests/             @MEMBER-3 @OWNER-MOHAMED
+
+# Infrastructure, containers, monitoring
+/docker/                    @MEMBER-4
+/infra/                     @MEMBER-4 @OWNER-MOHAMED
+/monitoring/                @MEMBER-4
+
+# ---- Documentation --------------------------------------------------------
+# Deliverables, so still reviewed — but not by the pipeline owner alone.
+
+/docs/                      @MEMBER-4 @OWNER-MOHAMED
+/docs/threat-model/         @OWNER-MOHAMED @MEMBER-4
+/docs/adr/                  @OWNER-MOHAMED
+/evidence/                  @OWNER-MOHAMED
+/tasks/                     @OWNER-MOHAMED

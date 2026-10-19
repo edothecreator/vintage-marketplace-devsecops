@@ -1,0 +1,71 @@
+# Gitleaks configuration
+# Practice: P30 Secrets management (Tier 2) + P8 Shift left security (Tier 1)
+# Runs in two places:
+#   1. pre-commit hook  -> blocks the secret before it enters history
+#   2. CI pipeline      -> scans the full history on every push
+#
+# Reference: https://github.com/gitleaks/gitleaks
+
+# Start from the maintained default rule set, then extend it.
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Project-specific rules
+# ---------------------------------------------------------------------------
+
+[[rules]]
+id = "gemini-api-key"
+description = "Google Gemini / Google AI Studio API key"
+# Google API keys begin with AIza followed by 35 url-safe characters.
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+tags = ["key", "google", "gemini"]
+
+[[rules]]
+id = "generic-jwt-secret-assignment"
+description = "Hardcoded JWT signing secret"
+regex = '''(?i)(jwt[_-]?secret|token[_-]?secret|signing[_-]?key)\s*[:=]\s*['"][^'"\s]{8,}['"]'''
+tags = ["secret", "jwt"]
+
+[[rules]]
+id = "hardcoded-db-url"
+description = "Database connection string with inline credentials"
+regex = '''(?i)(postgres|postgresql|mysql|mongodb(\+srv)?)://[^:\s'"]+:[^@\s'"]+@'''
+tags = ["credential", "database"]
+
+[[rules]]
+id = "hardcoded-password-assignment"
+description = "Hardcoded password assignment"
+regex = '''(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"\s]{6,}['"]'''
+tags = ["credential"]
+
+# ---------------------------------------------------------------------------
+# Allowlist
+# ---------------------------------------------------------------------------
+# Scoped deliberately narrowly. Everything excluded here must be either a
+# placeholder, a test fixture, or documentation — never a real secret.
+
+[allowlist]
+description = "Placeholders, fixtures and documentation"
+
+paths = [
+  '''\.gitleaks\.toml$''',
+  '''(^|/)\.env\.example$''',
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)docs/.*\.(md|txt)$''',
+  '''(^|/)evidence/''',
+  '''(^|/)tasks/.*\.md$''',
+]
+
+regexes = [
+  # Obvious placeholder values used in examples and templates.
+  '''(?i)(your[_-]?|example[_-]?|placeholder|changeme|dummy|sample[_-]?|<[^>]+>|xxx+|\.\.\.)''',
+  '''(?i)password\s*[:=]\s*['"](password|secret|test|example|changeme)['"]''',
+  # Test fixtures must be explicitly named as such.
+  '''(?i)test[_-]?(only|fixture|value)''',
+]
+
+# NOTE for Phase 9 (deliberate vulnerability demonstration V2):
+# The V2 demo plants a fake API key so Gitleaks detects it and fails the build.
+# That key must NOT match any allowlist entry above, or the demo silently passes.
+# Verify locally with:  gitleaks detect --no-git --verbose

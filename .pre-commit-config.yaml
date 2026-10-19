@@ -1,0 +1,86 @@
+# Pre-commit hooks
+# Practice: P8 Shift left security (Tier 1, 36 mentions)
+#
+# This is the earliest possible security gate: it runs on the developer's
+# machine, before a commit is created. A secret blocked here never enters
+# git history at all, which is the entire point of shifting left.
+#
+# Setup (once per clone):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Run against the whole repository:
+#   pre-commit run --all-files
+#
+# Hooks are deliberately fast. Slow analysis (SAST, DAST, SCA) belongs in CI,
+# not in the commit path — a slow hook teaches developers to use --no-verify,
+# which defeats the control.
+
+default_install_hook_types: [pre-commit, commit-msg]
+fail_fast: false
+
+repos:
+  # -------------------------------------------------------------------------
+  # Secret scanning — the primary security hook
+  # -------------------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+        name: gitleaks (block secrets before commit)
+
+  # -------------------------------------------------------------------------
+  # General file hygiene
+  # -------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+      # Refuse oversized files — a common way large secrets or dumps slip in.
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+
+      # Block committing private keys outright.
+      - id: detect-private-key
+
+      # Structural validation of config we depend on.
+      - id: check-yaml
+      - id: check-json
+        exclude: ^\.vscode/
+
+      # Catch accidentally committed .env files that slipped past .gitignore.
+      - id: forbid-new-submodules
+
+  # -------------------------------------------------------------------------
+  # Local project hooks
+  # -------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      # Hard stop on a real .env file being staged.
+      - id: no-env-files
+        name: refuse to commit .env files
+        entry: >
+          bash -c 'for f in "$@"; do
+            case "$f" in
+              *.env|.env|*/.env|*.env.local|*.env.production)
+                echo "BLOCKED: $f looks like a real environment file."
+                echo "Commit .env.example with placeholders instead.";
+                exit 1;;
+            esac
+          done'
+        language: system
+        files: (^|/)\.env($|\.)
+        exclude: \.env\.example$
+
+# -------------------------------------------------------------------------
+# Added in Phase 2, once package.json exists:
+#   - ESLint with eslint-plugin-security (P20 Secure coding)
+#   - Prettier formatting
+#   - TypeScript type check on staged files
+# Deliberately omitted now: these hooks would fail on an empty project.
+# -------------------------------------------------------------------------

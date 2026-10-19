@@ -1,0 +1,582 @@
+===============================================================================
+ PROJET 3 - WEB APPLICATION ATTACK PLAN
+ AI-augmented DevSecOps pipeline for a vintage marketplace (Express.js)
+===============================================================================
+
+ Student : ELKHANFAF Mohamed
+ Filiere : Cycle ingenieur IRISI 3 - FST Marrakech
+ Module  : Securite des applications et des services (2026/2027)
+ Projet  : Projet 3 - ecosysteme JavaScript (Express.js)
+
+ SCOPE OF THIS DOCUMENT: WEB APPLICATION ONLY.
+ The mobile application is deliberately deferred to a second phase (section 11).
+
+-------------------------------------------------------------------------------
+ SOURCES
+-------------------------------------------------------------------------------
+
+ Practice taxonomy:
+   Prates, L., Pereira, R. "DevSecOps practices and tools."
+   International Journal of Information Security, vol. 24, article 11 (2025).
+   DOI: https://doi.org/10.1007/s10207-024-00914-z   License: CC BY 4.0
+
+ Verification standard:
+   OWASP Application Security Verification Standard (ASVS) v5.0.0, May 2025.
+   (c) OWASP Foundation.   License: CC BY-SA 4.0
+
+ Risk catalogues referenced:
+   OWASP Top 10:2025, OWASP API Security Top 10, OWASP Mobile Top 10,
+   OWASP Top 10 for LLM Applications.
+
+ Content from these sources has been paraphrased and summarised.
+ No substantive meaning has been altered.
+
+===============================================================================
+ 1. THE ONE THING THAT DECIDES THE GRADE
+===============================================================================
+
+ The brief states that priority goes to the quality of the cybersecurity
+ approach, the automation of controls, and the ability to demonstrate the
+ pipeline's effectiveness - rather than the number of features built.
+
+ It then fixes the exact shape the demonstration must take:
+
+   Security practice -> Tool -> Pipeline integration -> Detection
+                     -> Result -> Corrective action
+
+ Everything in this plan is organised backwards from that chain.
+ Two consequences follow, and they drive the whole strategy.
+
+ ---------------------------------------------------------------------------
+ CONSEQUENCE 1 - A CLEAN APPLICATION PROVES NOTHING
+ ---------------------------------------------------------------------------
+ If our code is secure from the first commit, every scanner returns an empty
+ report. An empty report demonstrates Detection -> Result -> Corrective action
+ for exactly zero practices. We therefore need real findings.
+
+ Section 9 defines a deliberate vulnerability programme to manufacture them
+ under controlled conditions.
+
+ *** THIS IS THE SINGLE MOST IMPORTANT TACTICAL DECISION IN THE PROJECT. ***
+
+ ---------------------------------------------------------------------------
+ CONSEQUENCE 2 - EVIDENCE MUST BE CAPTURED AS WE GO
+ ---------------------------------------------------------------------------
+ Pipeline run logs expire, branches get deleted, dashboards reset. Every phase
+ below names the artefacts to save at the moment they are produced, into an
+ evidence/ directory in the repository. Capture is part of each task's
+ definition of done, not a task for the final week.
+
+===============================================================================
+ 2. APPLICATION SCOPE (deliberately small, deliberately security-rich)
+===============================================================================
+
+ A vintage marketplace: sellers list one-of-a-kind second-hand items, buyers
+ purchase them. The feature set is minimal, but every feature is chosen because
+ it creates a security surface we must then defend and demonstrate.
+
+ FEATURE                      WHY IN SCOPE         PRIMARY RISK DEMONSTRATED
+ ---------------------------  -------------------  --------------------------
+ Register / login / logout    Authentication       Broken auth, credential
+                              surface              stuffing, weak password
+                                                   storage
+
+ Roles: buyer, seller, admin  Authorization        Privilege escalation,
+                              surface              broken function-level authz
+
+ Seller CRUD on own listings  Ownership            IDOR / BOLA  <<< the most
+                              enforcement          important demo in the
+                                                   project
+
+ Listing image upload         Untrusted file       Malicious upload, path
+                              handling             traversal, server-side
+                                                   execution
+
+ Browse / search listings     User input into      SQL injection, enumeration,
+                              queries              scraping
+
+ Place order (simulated       Business logic       Business-logic abuse,
+ payment)                     with value           DOUBLE-SALE of a unique item
+
+ Reviews on completed orders  Stored user content  Stored XSS
+
+ Admin moderation             Privileged           Broken access control on
+                              interface            admin functions
+
+ AI listing-description       LLM integration      OWASP LLM Top 10 - prompt
+ generator                                         injection, insecure output
+                                                   handling, cost abuse
+
+ EXPLICITLY OUT OF SCOPE: real payment processing, email delivery, social
+ login, real-time chat. None add a risk category we do not already cover, and
+ each would consume time that belongs to the pipeline.
+
+-------------------------------------------------------------------------------
+ 2.1 REST API SURFACE
+-------------------------------------------------------------------------------
+
+ ENDPOINT                             ACCESS       NOTE
+ -----------------------------------  -----------  --------------------------
+ POST   /api/auth/register            public       Rate limited, password
+                                                   policy enforced
+ POST   /api/auth/login               public       Generic error message,
+                                                   anti-automation
+ POST   /api/auth/refresh             cookie       Rotation + reuse detection
+ POST   /api/auth/logout              authent.     Server-side token
+                                                   invalidation
+ GET    /api/listings                 public       Search, pagination, field
+                                                   selection
+ GET    /api/listings/:id             public       Returns only public fields
+ POST   /api/listings                 seller       Schema validation,
+                                                   mass-assignment guard
+ PUT    /api/listings/:id             OWNER ONLY   *** DEMO TARGET V5 (IDOR) **
+ DELETE /api/listings/:id             owner only   Ownership re-checked server
+                                                   side
+ POST   /api/listings/:id/images      owner only   Magic-byte check, re-encode,
+                                                   non-executable store
+ POST   /api/orders                   buyer        Transactional lock against
+                                                   double-sale
+ GET    /api/orders                   OWN ONLY     *** DEMO TARGET (BOLA) ***
+ POST   /api/reviews                  buyer,       Sanitised on output
+                                      post-order
+ GET    /api/admin/listings           ADMIN ONLY   Privilege-escalation test
+                                                   target
+ POST   /api/ai/describe              seller       Prompt-injection guards,
+                                                   token + cost cap
+
+===============================================================================
+ 3. ORDER OF ATTACK - AND WHY THIS ORDER
+===============================================================================
+
+ The sequencing is not arbitrary. Three rules govern it:
+
+ 1. PIPELINE SKELETON BEFORE APPLICATION CODE.
+    If CI exists from day one, every later commit is scanned as it lands.
+    Retrofitting security onto a finished app is the exact anti-pattern ASVS
+    warns about - designing controls in afterwards costs far more than
+    building them in from the start.
+
+ 2. THREAT MODEL BEFORE IMPLEMENTATION.
+    P7 Threat modelling is a Tier 1 practice sitting in the Plan phase.
+    Producing it after the code is written would be theatre, and the professor
+    will be able to tell from the commit dates.
+
+ 3. DELIBERATE VULNERABILITIES LAST.
+    We can only demonstrate detection once the detectors are wired up and the
+    secure baseline exists to revert to.
+
+ #   PHASE                                   EFFORT   PRACTICES SATISFIED
+ --  --------------------------------------  -------  ----------------------
+ 0   Foundations & repository governance      2 days  P6 P9 P11 P15 P8
+ 1   Design, threat model, ASVS scoping       3 days  P7 P23 P24
+ 2   Backend & REST API                       6 days  P20
+ 3   Automated security test suite            4 days  P3
+ 4   Web front-end                            4 days  P20
+ 5   Pipeline security stages                 5 days  P1 P2 P4 P13 P30 P17
+ 6   Containerisation & deployment            3 days  P10 P12 P22
+ 7   Monitoring, logging, incident response   3 days  P5 P18 P28
+ 8   AI augmentation (app + pipeline)         4 days  LLM Top 10 + AI triage
+ 9   DELIBERATE VULNERABILITY DEMOS           4 days  Evidence for all above
+ 10  Pen test & performance analysis          3 days  P16 + required perf
+                                                      analysis
+ 11  Report, documentation, defence rehearsal 4 days  P14 P31
+
+ Effort figures are working days of focused effort, not calendar days.
+ Compress by running phases 3-4 and 6-7 in parallel across team members.
+
+===============================================================================
+ 4. PHASE 0 - FOUNDATIONS & REPOSITORY GOVERNANCE
+===============================================================================
+
+ Cheap, fast, and it banks four Tier 1 practices before a single line of
+ business logic exists.
+
+ TASKS
+   - Initialise repository; protect main: no direct pushes, require PR,
+     require passing checks, require one approving review.          [P11]
+   - Add CODEOWNERS so security-relevant paths require review.       [P9]
+   - Minimal CI workflow: install, lint, build, run empty test suite. [P6]
+   - Pre-commit hooks: Gitleaks for secrets, ESLint, formatter.  [P8][P30]
+   - SECURITY.md and a decision log (docs/adr/) for architecture decisions.
+   - evidence/ directory structure, one folder per practice.
+
+ EVIDENCE TO CAPTURE
+   - Screenshot of branch-protection settings (this IS the proof for P11).
+   - First green pipeline run.
+   - A commit deliberately containing a fake key, blocked by the pre-commit
+     hook - terminal capture.
+
+===============================================================================
+ 5. PHASE 1 - DESIGN, THREAT MODEL, ASVS SCOPING
+===============================================================================
+
+ No application code is written in this phase. Three documents come out of it,
+ and all three are listed in the brief as required deliverables.
+
+-------------------------------------------------------------------------------
+ 5.1 ARCHITECTURE DOCUMENT
+-------------------------------------------------------------------------------
+ Component diagram and data-flow diagram covering web front-end, REST API,
+ database, object storage, and the LLM provider as an external trust boundary.
+ The mobile app appears as a planned future client so the architecture does not
+ have to change later.
+
+-------------------------------------------------------------------------------
+ 5.2 THREAT MODEL                                            [P7] [P23]
+-------------------------------------------------------------------------------
+ STRIDE applied per data flow in OWASP Threat Dragon (cited in the paper's tool
+ table). Minimum threats to cover:
+
+ FLOW            THREAT                        MITIGATION -> ASVS
+ --------------  ----------------------------  --------------------------
+ Buyer -> API    Tampering with listingId to   Server-side ownership check
+                 edit another seller's item    -> ASVS 8.2.2
+
+ Buyer -> API    Two buyers purchase the same  Transactional row lock
+                 unique item                   -> ASVS 2.3.4
+
+ Seller ->       Upload of executable           Magic bytes + re-encode +
+ storage         disguised as image             no-exec store
+                                                -> ASVS 5.2.2, 5.3.1
+
+ Public -> API   Bulk scraping of listings      Rate limiting,
+                 and seller data                anti-automation
+                                                -> ASVS 2.4.1
+
+ API -> LLM      Prompt injection via listing   Input sanitisation, output
+                 title                          encoding, no secrets in
+                                                prompt
+
+ API -> DB       Injection via search param     Parameterised queries / ORM
+                                                -> ASVS 1.2.4
+
+-------------------------------------------------------------------------------
+ 5.3 ASVS SCOPING DECISION                                        [P24]
+-------------------------------------------------------------------------------
+ ASVS 5.0 defines three levels; L1 is roughly 20% of its ~350 requirements and
+ L2 is what most applications should target.
+
+ OUR DOCUMENTED DECISION:
+   Full Level 1, plus targeted Level 2 on the chapters where a marketplace
+   carries real risk:
+     V2  Validation & business logic
+     V4  API and web service
+     V5  File handling
+     V6  Authentication
+     V8  Authorization
+     V13 Configuration & secrets
+     V16 Logging & error handling
+
+   Chapters V10 (OAuth/OIDC) and V17 (WebRTC) are excluded as not applicable.
+   ASVS explicitly encourages this kind of scoped fork, and the exclusion must
+   be justified in the verification report.
+
+ >>> WRITE THE JUSTIFICATION DOWN NOW.
+     ASVS requires the verification report to state what was INCLUDED and to
+     justify exclusions. If this document exists before implementation, the
+     report writes itself at the end. If it does not, you will be
+     reverse-engineering your own scope under deadline pressure.
+
+===============================================================================
+ 6. PHASE 2 - BACKEND & REST API
+===============================================================================
+
+ Stack: Node.js + Express + TypeScript, PostgreSQL, Prisma ORM (parameterised
+ queries by default), Zod for schema validation, Argon2id for password storage.
+
+ CONTROL                IMPLEMENTATION                          ASVS
+ ---------------------  --------------------------------------  -------------
+ Password storage       Argon2id, parameters per ASVS App. C    11.4.2
+ Password policy        Min 8 (15 recommended), no composition  6.2.1
+                        rules, breach-list check                6.2.12
+ Session tokens         Opaque refresh token in __Host- cookie, 3.3.1
+                        HttpOnly, SameSite; short-lived access  7.2.3
+                        token
+ Token validation       Algorithm allow-list, no "none",        9.1.2
+                        audience + expiry checked               9.2.1
+ Authorization          Central middleware; ownership resolved  8.2.2
+                        from DB, never from request body        8.3.1
+ Input validation       Zod schema per route at the trusted     2.2.1
+                        service layer                           2.2.2
+ Mass assignment        Explicit field allow-lists per          15.3.3
+                        controller action
+ Output minimisation    DTO mapping; never return whole ORM     15.3.1
+                        entities
+ File upload            Size cap, extension/content match,      5.2.1 5.2.2
+                        image re-encode, random internal name   5.3.2
+ Unique-item locking    SELECT ... FOR UPDATE inside the order  2.3.4
+                        transaction                             2.3.3
+ Anti-automation        Per-IP and per-account rate limits on   2.4.1
+                        auth, search, order, AI
+ Security headers       Helmet: HSTS, CSP, nosniff,             3.4.x
+                        Referrer-Policy, frame-ancestors
+ Error handling         Generic client message; details only    16.5.1
+                        to logs; last-resort handler
+ Security logging       Auth success/failure, authz denials,    16.3.x
+                        control-bypass attempts; UTC; no        16.2.5
+                        secrets logged
+ Secrets                Nothing in source; env at dev, Vault    13.3.1
+                        or CI secret store beyond
+
+ Each control carries a code comment naming its ASVS requirement ID. This makes
+ the traceability table in the report mechanical to produce, and makes the
+ defence easy to answer.
+
+===============================================================================
+ 7. PHASE 3 - AUTOMATED SECURITY TEST SUITE                         [P3]
+===============================================================================
+
+ P3 is the third most-cited practice in the paper (56 publications) and is
+ defined there as API, web application and unit testing with a security focus -
+ DISTINCT from SAST and DAST.
+
+ ASVS independently makes the point that running an off-the-shelf scanner is
+ NOT the same as automated verification, and that application-specific checks
+ must be written for anything involving business logic or access control.
+
+ These two sources converge on the same deliverable, which is why this phase
+ matters more than it first appears.
+
+ Tooling: Jest + Supertest. Every test is named for the ASVS requirement it
+ verifies. Minimum abuse cases:
+
+ ABUSE CASE                                     EXPECTED       VERIFIES
+ ---------------------------------------------  -------------  ----------
+ Seller A edits seller B's listing              403            ASVS 8.2.2
+ Buyer reads another buyer's order              403            ASVS 8.2.2
+ Buyer calls admin moderation endpoint          403            ASVS 8.2.1
+ Two concurrent orders, same unique item        one 201,       ASVS 2.3.4
+                                                one 409
+ Upload .png whose content is a script          400            ASVS 5.2.2
+ Upload file above size cap                     413            ASVS 5.2.1
+ Review body containing <script>                stored raw,    ASVS 1.3.1
+                                                rendered inert
+ Login brute force beyond threshold             429            ASVS 6.3.1
+ Token with alg: none                           401            ASVS 9.1.2
+ Expired token                                  401            ASVS 9.2.1
+ Extra field role: admin in registration body   ignored        ASVS 15.3.3
+ Prompt injection in AI description input       neutralised    LLM01
+
+===============================================================================
+ 8. PHASE 5 - PIPELINE SECURITY STAGES
+===============================================================================
+
+ Every tool below except Jest and npm audit is drawn from Table 8 of
+ Prates & Pereira, so each choice is citable to the source paper.
+ Deviations are marked and justified on our own terms.
+
+ STAGE            TOOL                      TRIGGER         GATE POLICY
+ ---------------  ------------------------  --------------  ----------------
+ [P1]  SAST       SonarQube,                every push      Fail on new
+                  ESLint-security           + PR            blocker/critical
+
+ [P30] Secrets    Gitleaks                  every push      Fail on any hit
+                                            + full history
+
+ [P13] SCA        OWASP Dependency-Check,   every PR        Fail on high/
+                  npm audit                 + nightly       critical with fix
+                                                            available
+
+ [P4]  Deps       Retire.js (JS-specific)   every PR        Fail on known-
+                                                            vulnerable library
+
+ [P4]  Image      Trivy                     after image     Fail on high/
+                                            build           critical in base
+                                                            image
+
+ [P4]  IaC        Checkov                   on manifest     Warn, then fail
+                                            change          once baseline clean
+
+ [P3]  Tests      Jest + Supertest          every PR        Fail on any failing
+                                                            abuse case
+
+ [P2]  DAST       OWASP ZAP                 baseline on PR, Fail on new
+                                            full nightly    medium+ alert
+
+ [P17] Compliance Checkov + custom policy   every PR        Warn
+
+ >>> DOCUMENT THE GATE POLICY AS A DELIBERATE DECISION.
+     "Fail the build on X, warn on Y" is itself a security decision and the
+     professor may well probe it. Write the reasoning into an ADR: failing on
+     every low-severity finding stops all work and teaches the team to bypass
+     the pipeline; failing on nothing makes the pipeline decorative. The middle
+     position needs stating, not assuming.
+
+===============================================================================
+ 9. PHASE 9 - DELIBERATE VULNERABILITY DEMONSTRATIONS
+===============================================================================
+
+ This is how the required six-step chain gets its evidence. Each demonstration
+ lives on its own short-lived branch, is caught by exactly one named control,
+ and is then fixed. Nothing vulnerable is ever merged to main.
+
+ ID  INJECTED FLAW                 CAUGHT BY        PRAC.    CORRECTIVE ACTION
+ --  ----------------------------  ---------------  -------  -----------------
+ V1  String-concatenated SQL in    SonarQube        P1       Revert to
+     the search query              (SAST)                    parameterised
+                                                             Prisma query
+
+ V2  Hard-coded API key in a       Gitleaks         P30      Move to secret
+     config file                                             store, rotate key
+
+ V3  Pin a dependency version      Dependency-      P13      Upgrade, re-scan
+     with a known CVE              Check /          P4       clean
+                                   Retire.js
+
+ V4  Remove Helmet - CSP and       OWASP ZAP        P2       Restore headers,
+     HSTS disappear                (DAST)                    re-scan
+
+ V5  Delete ownership check on     Jest abuse-      P3       Restore
+     PUT /api/listings/:id         case suite                middleware; add
+                                                             regression test
+
+ V6  Downgrade to an outdated      Trivy            P4       Return to patched
+     Node base image                                         image
+
+ V7  Concatenate raw user text     Prompt-          P3       Reinstate
+     into the LLM prompt           injection test            sanitisation +
+                                                             output encoding
+
+ WHY V5 IS THE CENTREPIECE
+   Broken access control is the hardest class for scanners to catch - ASVS says
+   plainly that automated tools cannot fully verify business-logic and
+   access-control requirements. Showing that YOUR OWN test suite catches an
+   IDOR that SAST and DAST both miss demonstrates genuine understanding rather
+   than tool installation.
+
+   *** MAKE THIS THE FIRST DEMO IN THE ORAL DEFENCE. ***
+
+ EVIDENCE PER DEMONSTRATION
+   1. The injecting commit (diff).
+   2. The failing pipeline run log, with the failing stage highlighted.
+   3. The tool's report file, saved to evidence/<practice>/.
+   4. The fixing commit (diff).
+   5. The subsequent passing pipeline run.
+
+===============================================================================
+ 10. PHASE 10 - PENETRATION TEST AND PIPELINE PERFORMANCE ANALYSIS
+===============================================================================
+
+ The brief explicitly requires an analysis of the impact on pipeline
+ performance, which is easy to forget and easy to score on.
+
+-------------------------------------------------------------------------------
+ 10.1 MANUAL PENETRATION TEST                                      [P16]
+-------------------------------------------------------------------------------
+ Time-boxed manual pass with ZAP and Burp against staging, focused on what
+ automation misses: authorization matrix across all three roles, order-flow
+ sequencing, upload bypass attempts, and the AI endpoint.
+ Output: a short findings report with severity and remediation status.
+
+-------------------------------------------------------------------------------
+ 10.2 PERFORMANCE MEASUREMENT
+-------------------------------------------------------------------------------
+ Record mean wall-clock duration over at least five runs per configuration:
+
+ CONFIGURATION                            MEAN DURATION   ADDED OVERHEAD
+ ---------------------------------------  --------------  --------------
+ Baseline: install, build, unit tests     to measure      -
+ + SAST + secret scan                     to measure      to compute
+ + SCA + dependency scan                  to measure      to compute
+ + abuse-case suite                       to measure      to compute
+ + image build + Trivy                    to measure      to compute
+ + ZAP baseline scan                      to measure      to compute
+ FULL SECURED PIPELINE                    to measure      TOTAL %
+
+ Then document the optimisations applied and their effect:
+   - dependency caching
+   - parallel jobs
+   - ZAP baseline on pull requests, full scan moved to a nightly schedule
+   - SCA split between fast PR checks and deeper nightly analysis
+
+ A pipeline that got slower and was then deliberately tuned is a far better
+ story than one that was never measured.
+
+===============================================================================
+ 11. MOBILE APPLICATION - DEFERRED SECOND PHASE
+===============================================================================
+
+ Deliberately out of scope here. Started only once the web application and its
+ pipeline are complete and evidenced. Recorded now so the architecture does not
+ need rework later.
+
+ CARRIES OVER UNCHANGED                 NEW WORK REQUIRED FOR MOBILE
+ -------------------------------------  ------------------------------------
+ REST API and all server-side controls  OWASP Mobile Top 10 risk analysis
+ Threat model (extended with a mobile   Secure local storage - no tokens in
+ client flow)                           plain storage
+ CI/CD platform and secret management   Certificate pinning / TLS validation
+ SAST, SCA, secret scanning stages      Mobile SAST - MobSF added to pipeline
+ Monitoring and logging backend         Reverse-engineering resistance,
+                                        root/jailbreak posture
+ ASVS server-side requirements          Build signing and artefact integrity
+
+ Planned stack: React Native (Expo), reusing the same API contract and the same
+ TypeScript types.
+
+===============================================================================
+ 12. RISKS TO THE PROJECT ITSELF
+===============================================================================
+
+ RISK                                  IMPACT  MITIGATION
+ ------------------------------------  ------  --------------------------------
+ Scope creep into app features         High    Feature list in section 2 is
+ instead of pipeline depth                     frozen; any addition must
+                                               displace something
+
+ Evidence not captured, must be        High    evidence/ committed per phase;
+ recreated at the end                          capture is part of each task's
+                                               definition of done
+
+ Free-tier limits on SonarQube /       Medium  Self-host SonarQube in Docker;
+ scanners                                      prefer CLI tools from the
+                                               paper's table
+
+ LLM API cost or key leakage           Medium  Hard token cap, per-user rate
+                                               limit, key only in CI secret
+                                               store, never in prompt
+
+ Mobile phase starved of time          Medium  Already deferred and scoped; API
+                                               designed client-agnostic from
+                                               the start
+
+ Tier 1 practice present but not       High    Section 9 assigns a
+ demonstrable                                  demonstration to every
+                                               automatable practice; the four
+                                               process practices have named
+                                               document evidence
+
+===============================================================================
+ 13. IMMEDIATE NEXT ACTIONS
+===============================================================================
+
+ 1. DECIDE CI PLATFORM: GitHub Actions or GitLab CI.
+    Both appear in the paper's tool table. This blocks Phase 0 and therefore
+    everything else.
+
+ 2. Confirm the ASVS target level proposed in section 5.3.
+
+ 3. Confirm the AI scope: in-app description generator plus in-pipeline
+    finding triage.
+
+ 4. Begin Phase 0 - repository, branch protection, CI skeleton, pre-commit
+    hooks.
+
+-------------------------------------------------------------------------------
+ OPEN QUESTION ON TEAM ORGANISATION
+-------------------------------------------------------------------------------
+ The subject list places four students on Projet 3. If this is a team effort,
+ P9 Collaboration becomes easy to evidence genuinely - cross-review on pull
+ requests, shared triage of findings, CODEOWNERS across areas of ownership.
+
+ A workable split:
+   Member 1 - backend and API
+   Member 2 - pipeline and tooling
+   Member 3 - front-end and the abuse-case suite
+   Member 4 - infrastructure, monitoring and the report
+
+ Confirm the team composition so the plan can be divided accordingly.
+
+===============================================================================
+ END OF FILE
+===============================================================================
