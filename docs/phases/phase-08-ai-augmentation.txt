@@ -1,0 +1,153 @@
+===============================================================================
+ PHASE 08 - AI AUGMENTATION (APPLICATION + PIPELINE)
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 4 days
+ PRACTICES : no single Prates & Pereira practice - this phase addresses the
+             project title ("pipeline DevSecOps augmentee par IA") and brings
+             the OWASP Top 10 for LLM Applications into scope
+ DEPENDS ON: Phase 02 (API), Phase 05 (pipeline stages to triage)
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Two distinct AI integrations, for two distinct reasons.
+
+ 1. IN THE APPLICATION - an LLM listing-description generator.
+    Purpose: brings OWASP LLM Top 10 into scope, which the brief requires
+    (section 5.d) whenever the project uses AI/LLM features.
+
+ 2. IN THE PIPELINE - AI triage of security findings.
+    Purpose: this is literally the project title. Without it the pipeline is
+    a conventional DevSecOps pipeline, not an AI-augmented one.
+
+ PROVIDER: Google Gemini, free tier
+   gemini-2.5-flash-lite preferred (highest daily request allowance)
+   Quotas are per PROJECT not per key, and reset at midnight Pacific.
+   VERIFY actual limits in AI Studio - published figures changed repeatedly
+   during 2025-26.
+
+-------------------------------------------------------------------------------
+ TASKS - IN-APP LLM FEATURE
+-------------------------------------------------------------------------------
+
+ [ ] [MOHAMED] Add GEMINI_API_KEY to the GitHub secret store and local .env
+ [ ] [KIRO]    Gemini client service with timeout and retry limits
+ [ ] [KIRO]    POST /api/ai/describe
+                 input : item title, category, condition
+                 output: suggested listing description
+ [ ] [KIRO]    Seller-only, authenticated
+ [ ] [KIRO]    Front-end "generate description" button, result EDITABLE
+                 (human stays in control - never auto-publish model output)
+ [ ] [KIRO]    Graceful degradation when the quota is exhausted or the API fails
+                 ASVS 16.5.2
+
+-------------------------------------------------------------------------------
+ TASKS - OWASP LLM TOP 10 CONTROLS
+-------------------------------------------------------------------------------
+
+ LLM01 PROMPT INJECTION
+ [ ] [KIRO]    Never concatenate raw user text into the prompt
+ [ ] [KIRO]    Use structured/parameterised prompting; separate system from user
+ [ ] [KIRO]    Strip or neutralise instruction-like patterns in user input
+ [ ] [KIRO]    Constrain input length
+ [ ] [KIRO]    Abuse-case test: injected instruction does NOT change behaviour
+                 *** this is Phase 09 demonstration V7 ***
+
+ LLM02 INSECURE OUTPUT HANDLING
+ [ ] [KIRO]    Treat model output as UNTRUSTED input
+ [ ] [KIRO]    Sanitise before storing; encode before rendering   ASVS 1.3.1
+ [ ] [KIRO]    Never render model output as raw HTML
+ [ ] [KIRO]    Never pass model output into a query, shell or eval
+
+ LLM06 SENSITIVE INFORMATION DISCLOSURE
+ [ ] [KIRO]    Never send secrets, credentials or personal data to the model
+ [ ] [KIRO]    Do not include other users' data in the prompt
+ [ ] [KIRO]    Log prompts WITHOUT sensitive content            ASVS 16.2.5
+ [ ] [KIRO]    Document what leaves our boundary and goes to Google
+                 (the LLM provider is an external trust boundary in the
+                 threat model - see Phase 01)
+
+ LLM10 UNBOUNDED CONSUMPTION / COST ABUSE
+ [ ] [KIRO]    Per-user rate limit on the AI endpoint           ASVS 2.4.1
+ [ ] [KIRO]    Global daily cap below the free-tier quota
+ [ ] [KIRO]    Hard max output token limit
+ [ ] [KIRO]    Monitor usage against quota (Phase 07 dashboard panel)
+ [ ] [KIRO]    Alert before quota exhaustion
+                 NOTE: the free-tier quota makes this risk CONCRETE rather than
+                 theoretical, which makes it a genuinely demonstrable control.
+
+-------------------------------------------------------------------------------
+ TASKS - AI TRIAGE IN THE PIPELINE
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Script that consumes the pipeline's security reports
+                 SARIF from SAST, ZAP JSON, Trivy JSON, Dependency-Check
+ [ ] [KIRO]    Send findings to Gemini for:
+                 [ ] plain-language explanation of each finding
+                 [ ] severity sanity check and likely false-positive flagging
+                 [ ] suggested remediation
+                 [ ] deduplication across tools reporting the same issue
+ [ ] [KIRO]    Post the triage summary as a pull request comment
+ [ ] [KIRO]    *** HUMAN REVIEW REQUIRED - the AI MUST NOT auto-merge,
+                 auto-dismiss, or auto-fix anything ***
+ [ ] [KIRO]    Never send source code containing secrets to the model
+ [ ] [KIRO]    Handle quota exhaustion without failing the build
+                 (triage is advisory; it must not become a build dependency)
+ [ ] [KIRO]    Write ADR 0009 - AI triage design and its limits
+
+-------------------------------------------------------------------------------
+ TASKS - AI-GENERATED CODE GOVERNANCE (brief section 7)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Document which parts of the project used AI assistance
+ [ ] [KIRO]    Confirm all AI-assisted code passed SAST, SCA, secret scanning
+                 and DAST like any other code
+ [ ] [TEAM]    Each member must be able to EXPLAIN the code they shipped
+                 (explicitly required by the brief, and a likely oral question)
+ [ ] [KIRO]    Document the risks of AI-generated code and our mitigations
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] Working AI description feature (screenshots / recording)
+ [ ] Prompt injection attempt BLOCKED (before/after)
+ [ ] Rate limit and token cap enforced (429 response captured)
+ [ ] Quota monitoring dashboard panel
+ [ ] AI triage comment on a real pull request   <- the headline artefact
+ [ ] LLM Top 10 risk -> control mapping table
+ [ ] ADR 0009
+ All under: evidence/tier2/AI-augmentation/
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] AI description feature works end to end
+ [ ] All four applicable LLM Top 10 risks have implemented controls
+ [ ] Prompt injection demonstrably blocked
+ [ ] AI triage posts useful comments on pull requests
+ [ ] Triage NEVER gates the build and never acts autonomously
+ [ ] No secret or personal data ever sent to the model
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - The AI triage comment on a PR is the single most distinctive artefact in the
+   project. It is what makes the pipeline "augmentee par IA" rather than just
+   DevSecOps with an LLM feature bolted on. Make it good.
+
+ - Be honest about limitations in the report: the model can be wrong, can
+   hallucinate a fix, and must not be trusted to dismiss findings. Saying this
+   explicitly is stronger than pretending otherwise, and it directly answers
+   the brief's requirement to consider LLM risks.
+
+===============================================================================
+ END OF FILE
+===============================================================================

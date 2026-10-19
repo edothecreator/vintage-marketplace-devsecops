@@ -1,0 +1,181 @@
+===============================================================================
+ PHASE 02 - BACKEND & REST API
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 6 days
+ PRACTICES : P20 Secure coding (Tier 2, 18 mentions)
+ DEPENDS ON: Phase 01 complete and COMMITTED (chronology is evidence)
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+ OWNERS: [KIRO] [MOHAMED] [TEAM] [BOTH]
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Build the Express.js REST API with every security control designed in, each
+ one carrying a code comment naming its ASVS requirement ID.
+
+ The ASVS annotations are not decoration: they make the traceability table in
+ the report mechanical to produce, and make questions in the oral defence easy
+ to answer by pointing at the code.
+
+ STACK
+   Node.js 22 + Express + TypeScript
+   PostgreSQL + Prisma ORM     (parameterised queries by default)
+   Zod                         (schema validation)
+   Argon2id                    (password hashing)
+   Helmet                      (security headers)
+
+-------------------------------------------------------------------------------
+ TASKS - PROJECT SCAFFOLD
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    backend/package.json with pinned versions
+ [ ] [KIRO]    TypeScript config, strict mode ON
+ [ ] [KIRO]    ESLint + eslint-plugin-security + Prettier
+ [ ] [KIRO]    Jest + Supertest test harness
+ [ ] [KIRO]    .env.example with placeholder values only
+ [ ] [KIRO]    Docker Compose for local PostgreSQL
+ [ ] [KIRO]    Prisma schema + initial migration
+ [ ] [KIRO]    Seed script (test users for each role, sample listings)
+ [ ] [KIRO]    ADD the deferred pre-commit hooks now that package.json exists
+                 ESLint, Prettier, typecheck on staged files
+                 (deferred from Phase 00 on purpose)
+ [ ] [KIRO]    Update ci.yml - the scaffold now exists, so the real build runs
+ [ ] [KIRO]    VERIFY CI still green after the scaffold lands
+
+-------------------------------------------------------------------------------
+ TASKS - DATA MODEL
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    User      (id, email, passwordHash, role, createdAt)
+ [ ] [KIRO]    Listing   (id, sellerId, title, description, price, status, ...)
+ [ ] [KIRO]    ListingImage (id, listingId, storedFilename, mimeType)
+ [ ] [KIRO]    Order     (id, listingId, buyerId, status, createdAt)
+ [ ] [KIRO]    Review    (id, orderId, authorId, rating, body)
+ [ ] [KIRO]    RefreshToken (id, userId, tokenHash, expiresAt, revokedAt)
+ [ ] [KIRO]    Listing.status must support a RESERVED/SOLD state so a unique
+                 item cannot be sold twice
+
+-------------------------------------------------------------------------------
+ TASKS - SECURITY CONTROLS (each with ASVS ID in a code comment)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Password storage - Argon2id, params per ASVS Appendix C
+                 ASVS 11.4.2
+ [ ] [KIRO]    Password policy - min 8 (15 recommended), NO composition rules,
+                 breach-list check
+                 ASVS 6.2.1, 6.2.5, 6.2.12
+ [ ] [KIRO]    Session tokens - opaque refresh token in __Host- cookie,
+                 HttpOnly, SameSite, Secure; short-lived access token
+                 ASVS 3.3.1, 3.3.4, 7.2.3
+ [ ] [KIRO]    Token validation - algorithm allow-list, reject alg:none,
+                 verify audience and expiry
+                 ASVS 9.1.1, 9.1.2, 9.2.1, 9.2.3
+ [ ] [KIRO]    Token rotation + reuse detection on refresh
+                 ASVS 7.4.1
+ [ ] [KIRO]    Central authorization middleware
+                 ownership resolved FROM THE DATABASE, never from request body
+                 ASVS 8.2.2, 8.3.1
+ [ ] [KIRO]    Role-based function access (buyer / seller / admin)
+                 ASVS 8.2.1
+ [ ] [KIRO]    Input validation - Zod schema per route at the service layer
+                 ASVS 2.2.1, 2.2.2
+ [ ] [KIRO]    Mass-assignment guard - explicit field allow-lists
+                 ASVS 15.3.3
+ [ ] [KIRO]    Output minimisation - DTO mapping, never return ORM entities
+                 ASVS 15.3.1
+ [ ] [KIRO]    File upload - size cap, extension/content match via magic bytes,
+                 image re-encode, random internal filename, non-executable store
+                 ASVS 5.2.1, 5.2.2, 5.3.1, 5.3.2
+ [ ] [KIRO]    Unique-item locking - SELECT ... FOR UPDATE in the order txn
+                 ASVS 2.3.3, 2.3.4
+                 *** This is the signature control of a vintage marketplace. ***
+ [ ] [KIRO]    Anti-automation - per-IP and per-account rate limits on
+                 auth / search / order / AI endpoints
+                 ASVS 2.4.1, 6.3.1
+ [ ] [KIRO]    Security headers via Helmet
+                 HSTS, CSP, nosniff, Referrer-Policy, frame-ancestors
+                 ASVS 3.4.1 - 3.4.6
+ [ ] [KIRO]    CORS - fixed allow-list, not a wildcard
+                 ASVS 3.4.2
+ [ ] [KIRO]    Error handling - generic client message, detail to logs only,
+                 last-resort handler
+                 ASVS 16.5.1, 16.5.3, 16.5.4
+ [ ] [KIRO]    Security logging - auth outcomes, authz denials, bypass attempts;
+                 UTC timestamps; NO secrets or tokens logged
+                 ASVS 16.2.1, 16.2.2, 16.2.5, 16.3.1, 16.3.2
+ [ ] [KIRO]    Secrets - nothing in source; env locally, CI secret store beyond
+                 ASVS 13.3.1
+
+-------------------------------------------------------------------------------
+ TASKS - API ENDPOINTS
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    POST   /api/auth/register
+ [ ] [KIRO]    POST   /api/auth/login
+ [ ] [KIRO]    POST   /api/auth/refresh
+ [ ] [KIRO]    POST   /api/auth/logout
+ [ ] [KIRO]    GET    /api/listings            search + pagination
+ [ ] [KIRO]    GET    /api/listings/:id
+ [ ] [KIRO]    POST   /api/listings            seller only
+ [ ] [KIRO]    PUT    /api/listings/:id        OWNER ONLY - demo target V5
+ [ ] [KIRO]    DELETE /api/listings/:id        owner only
+ [ ] [KIRO]    POST   /api/listings/:id/images owner only
+ [ ] [KIRO]    POST   /api/orders              buyer, transactional lock
+ [ ] [KIRO]    GET    /api/orders              OWN ONLY - BOLA demo target
+ [ ] [KIRO]    POST   /api/reviews             buyer, post-order only
+ [ ] [KIRO]    GET    /api/admin/listings      ADMIN ONLY
+ [ ] [KIRO]    POST   /api/ai/describe         seller, deferred to Phase 08
+ [ ] [KIRO]    GET    /health                  no sensitive detail exposed
+
+-------------------------------------------------------------------------------
+ TASKS - DOCUMENTATION
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    OpenAPI / Swagger spec for the API
+ [ ] [KIRO]    Update README with real setup and run instructions
+                 INCLUDE the gh auth setup-git gotcha for teammates
+ [ ] [TEAM]    Installation and usage documentation
+                 (required deliverable in the brief)
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] Source code with ASVS IDs in comments -> in repo
+ [ ] ASVS requirement -> code location traceability table
+                                           -> evidence/tier2/P20-secure-coding/
+ [ ] OpenAPI spec                          -> in repo
+ [ ] PR threads with completed security checklists -> evidence/P11-code-review/
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] All endpoints implemented and manually exercised
+ [ ] Every security control carries its ASVS ID in a comment
+ [ ] CI green with the real build, lint, typecheck and test steps
+ [ ] Deferred pre-commit hooks now active
+ [ ] No secret anywhere in the repository (gitleaks full-history scan clean)
+ [ ] API documented
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - Do NOT write the abuse-case tests here. That is Phase 03 and it is a Tier 1
+   practice in its own right (P3, 56 mentions). Keeping it separate makes the
+   evidence cleaner.
+
+ - Resist adding features. The feature list is frozen in the attack plan. Any
+   addition must displace something.
+
+ - PUT /api/listings/:id and GET /api/orders are deliberate Phase 09 demo
+   targets. Implement them correctly now; they get broken on purpose later.
+
+===============================================================================
+ END OF FILE
+===============================================================================

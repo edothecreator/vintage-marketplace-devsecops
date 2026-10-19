@@ -1,0 +1,123 @@
+===============================================================================
+ PHASE INDEX - PROJET 3 WEB APPLICATION
+ One file per phase. Each lists its tasks with completion status.
+===============================================================================
+
+ Project : Vintage marketplace - AI-augmented DevSecOps pipeline
+ Repo    : https://github.com/edothecreator/vintage-marketplace-devsecops
+ Scope   : WEB APPLICATION ONLY (mobile deferred - see phase 12)
+
+-------------------------------------------------------------------------------
+ LEGEND USED IN ALL PHASE FILES
+-------------------------------------------------------------------------------
+
+ [x] done
+ [ ] not started
+ [~] in progress
+ [!] blocked (waiting on something external)
+
+ OWNER TAGS
+   [KIRO]    done by the AI assistant (code, config, docs, verification)
+   [MOHAMED] only Mohamed can do it (accounts, clicks, screenshots, decisions)
+   [TEAM]    delegated to a team member
+   [BOTH]    needs Mohamed and Kiro together
+
+-------------------------------------------------------------------------------
+ OVERALL STATUS
+-------------------------------------------------------------------------------
+
+ #   PHASE                                   STATUS        PRACTICES
+ --  --------------------------------------  ------------  ------------------
+ 00  Foundations & repository governance     IN PROGRESS   P6 P8 P9 P11 P15 P30
+ 01  Design, threat model, ASVS scoping      NOT STARTED   P7 P23 P24
+ 02  Backend & REST API                     NOT STARTED   P20
+ 03  Automated security test suite           NOT STARTED   P3
+ 04  Web front-end                           NOT STARTED   P20
+ 05  Pipeline security stages                NOT STARTED   P1 P2 P4 P13 P17 P30
+ 06  Containerisation & deployment           NOT STARTED   P10 P12 P22
+ 07  Monitoring, logging, incident response  NOT STARTED   P5 P18 P28
+ 08  AI augmentation (app + pipeline)        NOT STARTED   LLM Top 10
+ 09  Deliberate vulnerability demos          NOT STARTED   evidence for all
+ 10  Pen test & performance analysis         NOT STARTED   P16 P31
+ 11  Report, documentation, defence          NOT STARTED   P14
+ 12  Mobile application (DEFERRED)           NOT STARTED   OWASP Mobile Top 10
+
+-------------------------------------------------------------------------------
+ TIER 1 PRACTICE COVERAGE TRACKER (all 11 are mandatory)
+-------------------------------------------------------------------------------
+
+ ID   PRACTICE                      IMPLEMENTED  EVIDENCE   PHASE
+ ---  ----------------------------  -----------  ---------  -----
+ P1   SAST                          no           no         05
+ P2   DAST                          no           no         05
+ P3   Automated security testing    no           no          03
+ P4   Vulnerability scanning        no           no         05
+ P5   Continuous monitoring         no           no         07
+ P6   Continuous integration        YES          partial    00
+ P7   Threat modelling              no           no         01
+ P8   Shift left security           YES          partial    00
+ P9   Collaboration                 partial      no         00
+ P10  Continuous deployment         no           no         06
+ P11  Code review                   YES          partial    00
+
+ "partial" evidence = control is in place but screenshots/artefacts not yet
+ captured and committed.
+
+-------------------------------------------------------------------------------
+ TIER 2 PRACTICE TRACKER (optional - each one earns bonus)
+-------------------------------------------------------------------------------
+
+ ID   PRACTICE                      PLANNED  IMPLEMENTED  PHASE
+ ---  ----------------------------  -------  -----------  -----
+ P12  Infrastructure as code        yes      no           06
+ P13  SCA                           yes      no           05
+ P14  Security training             yes      no           11
+ P15  VCS                           yes      YES          00
+ P16  Penetration testing           yes      no           10
+ P17  Continuous compliance         yes      no           05
+ P18  Logging                       yes      no           07
+ P19  IAST                          NO       -            -
+ P20  Secure coding                 yes      no           02
+ P21  Configuration management      maybe    no           06
+ P22  Environment hardening         yes      no           06
+ P23  Risk assessment               yes      no           01
+ P24  Security requirement gathering yes     no           01
+ P25  RASP                          NO       -            -
+ P26  Security policies             maybe    no           05
+ P27  Patch management              yes      no           05
+ P28  Security incident management  yes      no           07
+ P29  IAM                           maybe    no           02
+ P30  Secrets management            yes      partial      00
+ P31  Security auditing             yes      no           10
+
+-------------------------------------------------------------------------------
+ FILES IN THIS FOLDER
+-------------------------------------------------------------------------------
+
+ 00-INDEX.txt                      this file
+ phase-00-foundations.txt
+ phase-01-design-threat-model.txt
+ phase-02-backend-api.txt
+ phase-03-automated-security-tests.txt
+ phase-04-web-frontend.txt
+ phase-05-pipeline-security-stages.txt
+ phase-06-containerisation-deployment.txt
+ phase-07-monitoring-logging.txt
+ phase-08-ai-augmentation.txt
+ phase-09-vulnerability-demos.txt
+ phase-10-pentest-performance.txt
+ phase-11-report-defence.txt
+ phase-12-mobile-deferred.txt
+
+-------------------------------------------------------------------------------
+ RELATED DOCUMENTS
+-------------------------------------------------------------------------------
+
+ ../tier1-tier2-practices.txt   practice reference list with definitions
+ ../web-app-attack-plan.txt     the strategy behind these phases
+ ../../PROGRESS.md              live project state (authoritative)
+ ../adr/                        architecture decision records
+
+===============================================================================
+ END OF FILE
+===============================================================================

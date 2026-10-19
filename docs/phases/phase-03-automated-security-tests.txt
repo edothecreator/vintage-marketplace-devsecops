@@ -1,0 +1,133 @@
+===============================================================================
+ PHASE 03 - AUTOMATED SECURITY TEST SUITE
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 4 days
+ PRACTICES : P3 Automated security testing (Tier 1, 56 mentions - 3rd most cited)
+ DEPENDS ON: Phase 02 (API endpoints must exist)
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Write an abuse-case test suite where every test is named for the ASVS
+ requirement it verifies.
+
+ WHY THIS PHASE MATTERS MORE THAN IT LOOKS
+
+ Two independent sources converge on this deliverable:
+
+ 1. Prates & Pereira define P3 as API, web application and unit testing with a
+    security focus - explicitly DISTINCT from SAST (P1) and DAST (P2). At 56
+    mentions it is the third most cited practice in the entire field.
+
+ 2. ASVS states that running an off-the-shelf scanner is NOT the same as
+    automated verification, and that application-specific checks must be
+    written for anything involving business logic or access control.
+
+ This is also what makes the Phase 09 V5 demonstration possible: an IDOR that
+ SAST and DAST both miss, caught by our own suite.
+
+-------------------------------------------------------------------------------
+ TASKS - TEST HARNESS
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Jest + Supertest configured against a test database
+ [ ] [KIRO]    Test fixtures: one user per role, two sellers, two buyers
+ [ ] [KIRO]    Database reset between test runs
+ [ ] [KIRO]    Naming convention: test name INCLUDES the ASVS requirement ID
+                 e.g. "ASVS 8.2.2 - seller cannot edit another seller's listing"
+ [ ] [KIRO]    Wire the suite into ci.yml as a required status check
+
+-------------------------------------------------------------------------------
+ TASKS - ABUSE CASES (minimum set)
+-------------------------------------------------------------------------------
+
+ AUTHORIZATION - the most important group
+ [ ] [KIRO]    Seller A edits seller B's listing            -> 403  ASVS 8.2.2
+ [ ] [KIRO]    Seller A deletes seller B's listing          -> 403  ASVS 8.2.2
+ [ ] [KIRO]    Seller A uploads an image to B's listing     -> 403  ASVS 8.2.2
+ [ ] [KIRO]    Buyer reads another buyer's order            -> 403  ASVS 8.2.2
+ [ ] [KIRO]    Buyer lists orders, sees only their own      -> 200  ASVS 8.2.2
+ [ ] [KIRO]    Buyer calls admin moderation endpoint        -> 403  ASVS 8.2.1
+ [ ] [KIRO]    Seller calls admin moderation endpoint       -> 403  ASVS 8.2.1
+ [ ] [KIRO]    Unauthenticated access to a protected route  -> 401
+
+ BUSINESS LOGIC
+ [ ] [KIRO]    Two CONCURRENT orders for the same unique item
+                 -> exactly one 201, one 409                 ASVS 2.3.4
+                 *** signature test of this project ***
+ [ ] [KIRO]    Order a listing that is already sold          -> 409  ASVS 2.3.4
+ [ ] [KIRO]    Review posted without a completed order       -> 403  ASVS 2.3.1
+ [ ] [KIRO]    Negative or zero price rejected               -> 400  ASVS 2.2.1
+
+ FILE UPLOAD
+ [ ] [KIRO]    .png whose content is a script                -> 400  ASVS 5.2.2
+ [ ] [KIRO]    File above the size cap                       -> 413  ASVS 5.2.1
+ [ ] [KIRO]    Disallowed MIME type                          -> 400  ASVS 5.2.2
+ [ ] [KIRO]    Path traversal in the supplied filename       -> sanitised ASVS 5.3.2
+ [ ] [KIRO]    Uploaded file is NOT executed when fetched    -> ASVS 5.3.1
+
+ INJECTION / OUTPUT HANDLING
+ [ ] [KIRO]    SQL metacharacters in the search parameter    -> no injection ASVS 1.2.4
+ [ ] [KIRO]    Review body with <script> stored raw, rendered inert ASVS 1.3.1
+ [ ] [KIRO]    Listing description with HTML is sanitised    -> ASVS 1.3.1
+
+ AUTHENTICATION / TOKENS
+ [ ] [KIRO]    Login brute force beyond threshold            -> 429  ASVS 6.3.1
+ [ ] [KIRO]    Token with alg:none                           -> 401  ASVS 9.1.2
+ [ ] [KIRO]    Expired token                                 -> 401  ASVS 9.2.1
+ [ ] [KIRO]    Token signed with the wrong key               -> 401  ASVS 9.1.1
+ [ ] [KIRO]    Refresh token reuse after rotation            -> 401  ASVS 7.4.1
+ [ ] [KIRO]    Logout actually invalidates the session       -> 401  ASVS 7.4.1
+ [ ] [KIRO]    Login error messages do not reveal whether the account exists
+                                                             -> ASVS 6.3.8
+
+ MASS ASSIGNMENT / FIELD-LEVEL
+ [ ] [KIRO]    role:admin in the registration body is IGNORED -> ASVS 15.3.3
+ [ ] [KIRO]    sellerId in a listing update body is IGNORED   -> ASVS 15.3.3
+ [ ] [KIRO]    Buyer address is not exposed to other users    -> ASVS 8.2.3
+
+ ANTI-AUTOMATION
+ [ ] [KIRO]    Rapid listing enumeration is rate limited      -> 429  ASVS 2.4.1
+
+ AI ENDPOINT (completed in Phase 08)
+ [ ] [KIRO]    Prompt injection in the description input is neutralised -> LLM01
+ [ ] [KIRO]    AI endpoint is rate limited and token capped            -> LLM10
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] Full test run output showing ASVS IDs
+                               -> evidence/P3-automated-security-testing/
+ [ ] Coverage report           -> evidence/P3-automated-security-testing/
+ [ ] Test -> ASVS requirement mapping table
+                               -> evidence/P3-automated-security-testing/
+ [ ] CI run showing the suite as a required gate -> evidence/P6-.../
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] Every abuse case above implemented and passing
+ [ ] Every test names its ASVS requirement
+ [ ] Suite runs in CI and BLOCKS merge on failure
+ [ ] Concurrency test for double-sale proven reliable (run it repeatedly)
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - The concurrent-order test is genuinely tricky. It needs two real parallel
+   requests, not two sequential ones. Budget time; it is the most interesting
+   test in the suite and the most convincing in a demo.
+
+ - These tests are what make Phase 09 V5 work. Keep them strong.
+
+===============================================================================
+ END OF FILE
+===============================================================================

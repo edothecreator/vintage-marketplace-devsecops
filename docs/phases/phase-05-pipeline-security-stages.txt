@@ -1,0 +1,150 @@
+===============================================================================
+ PHASE 05 - PIPELINE SECURITY STAGES
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 5 days
+ PRACTICES : P1  SAST                   (Tier 1, 65 mentions - most cited)
+             P2  DAST                   (Tier 1, 58 mentions)
+             P4  Vulnerability scanning (Tier 1, 44 mentions)
+             P13 SCA                    (Tier 2, 27 mentions)
+             P17 Continuous compliance  (Tier 2, 22 mentions)
+             P27 Patch management       (Tier 2, 12 mentions)
+             P30 Secrets management     (Tier 2, 11 mentions - extends Phase 00)
+ DEPENDS ON: Phase 02 (code to scan), Phase 03 (tests to run)
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Wire every automated security control into the pipeline, with a deliberate
+ and documented gating policy.
+
+ TOOL SOURCING RULE
+ Every tool here except Jest and npm audit appears in Table 8 of Prates &
+ Pereira, so each choice is citable to the source paper. Additions outside the
+ paper are marked [+] and must be justified on our own terms in the report.
+
+-------------------------------------------------------------------------------
+ TASKS - SAST (P1)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Self-host SonarQube in Docker          [paper: 31 mentions]
+                 Avoids SonarCloud free-tier constraints
+ [ ] [KIRO]    SonarQube scanner job in ci.yml
+ [ ] [KIRO]    ESLint + eslint-plugin-security in CI  [paper, under P17]
+ [ ] [KIRO]    Quality gate: fail on NEW blocker or critical
+ [ ] [KIRO]    Upload SARIF to GitHub code scanning (public repo = free)
+ [ ] [KIRO]    VERIFY: plant a known flaw, confirm SonarQube catches it
+
+-------------------------------------------------------------------------------
+ TASKS - SECRET SCANNING (P30, extends Phase 00)
+-------------------------------------------------------------------------------
+
+ [x] [KIRO]    Gitleaks in pre-commit        (done in Phase 00)
+ [x] [KIRO]    Gitleaks full-history in CI   (done in Phase 00)
+ [ ] [KIRO]    Confirm the CI job fails the build on a real detection
+                 (Phase 00 verified the RULES fire; this verifies the GATE)
+
+-------------------------------------------------------------------------------
+ TASKS - SCA (P13)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    OWASP Dependency-Check job      [paper: 8 mentions]
+ [ ] [KIRO]    npm audit job                   [+ not in paper, justify]
+ [ ] [KIRO]    Generate an SBOM (CycloneDX)    ASVS 15.1.2
+ [ ] [KIRO]    Dependency-Track for SBOM analysis (optional)
+ [ ] [KIRO]    Gate: fail on high/critical WITH a fix available
+ [ ] [KIRO]    Document the remediation SLA by severity (ASVS 15.1.1)
+
+-------------------------------------------------------------------------------
+ TASKS - VULNERABILITY SCANNING (P4)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Retire.js for JavaScript dependencies   [paper: 6 mentions]
+                 JS-ECOSYSTEM SPECIFIC - a genuine fit for Projet 3
+ [ ] [KIRO]    Trivy for container images              [paper: 7 mentions]
+ [ ] [KIRO]    Checkov for IaC                         [paper: 4 mentions]
+ [ ] [KIRO]    Gate: fail on high/critical in the image
+ [ ] [KIRO]    IaC gate: warn first, fail once the baseline is clean
+
+-------------------------------------------------------------------------------
+ TASKS - DAST (P2)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Spin up the full app in CI (compose: API + DB + frontend)
+ [ ] [KIRO]    OWASP ZAP baseline scan on pull requests  [paper: 25 mentions]
+ [ ] [KIRO]    OWASP ZAP FULL scan on a nightly schedule
+                 Split deliberately: baseline is fast enough for PRs, full scan
+                 is not. This is also a pipeline-performance decision (Phase 10)
+ [ ] [KIRO]    Authenticated ZAP scan (so it reaches past the login wall)
+ [ ] [KIRO]    Gate: fail on NEW medium-or-above alert
+ [ ] [KIRO]    Publish the ZAP HTML report as a build artefact
+
+-------------------------------------------------------------------------------
+ TASKS - CONTINUOUS COMPLIANCE (P17) + PATCH MANAGEMENT (P27)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Dependabot config (free, GitHub-native)   -> P27
+ [ ] [KIRO]    Group Dependabot PRs to avoid noise
+ [ ] [KIRO]    Policy check job: required files present, hooks installed, etc.
+ [ ] [KIRO]    Consider Open Policy Agent or Kyverno     [paper, P26]
+
+-------------------------------------------------------------------------------
+ TASKS - GATING POLICY (write it down - it is a security decision)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Write ADR 0008 - pipeline gating policy
+                 Must state WHY, not just what:
+                 - failing on every low-severity finding stops all work and
+                   teaches the team to bypass the pipeline
+                 - failing on nothing makes the pipeline decorative
+                 - the middle position needs justifying, and a professor may
+                   well probe it
+ [ ] [KIRO]    Define severity thresholds per tool
+ [ ] [KIRO]    Define the exception process (how a finding gets accepted,
+                 by whom, with what expiry)
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] SonarQube report + quality gate result -> evidence/P1-sast/
+ [ ] ZAP baseline and full reports          -> evidence/P2-dast/
+ [ ] Trivy image scan output                -> evidence/P4-vulnerability-scanning/
+ [ ] Retire.js output                       -> evidence/P4-vulnerability-scanning/
+ [ ] Dependency-Check report + SBOM         -> evidence/tier2/P13-sca/
+ [ ] Gitleaks CI report                     -> evidence/tier2/P30-secrets/
+ [ ] Dependabot PR example                  -> evidence/tier2/P27-patch-management/
+ [ ] Full pipeline run showing every stage  -> evidence/P6-continuous-integration/
+ [ ] ADR 0008 gating policy                 -> in repo
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] All 7 security stages run in the pipeline
+ [ ] Each stage VERIFIED to fail the build on a real finding (not assumed)
+ [ ] Gating policy documented in an ADR
+ [ ] Reports published as build artefacts
+ [ ] Pipeline still completes in a tolerable time (measured in Phase 10)
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - This is the single most important phase for the grade. Take the time.
+
+ - Verify each gate by actually breaking something. A stage that has never
+   failed is a stage you cannot prove works - and Phase 09 depends on these
+   gates firing reliably.
+
+ - Watch the pipeline duration as stages are added. Record timings from the
+   start; Phase 10 needs the before/after numbers and they cannot be recovered
+   retrospectively.
+
+===============================================================================
+ END OF FILE
+===============================================================================

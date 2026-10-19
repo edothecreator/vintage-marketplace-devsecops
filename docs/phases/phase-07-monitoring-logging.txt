@@ -1,0 +1,135 @@
+===============================================================================
+ PHASE 07 - MONITORING, LOGGING, INCIDENT RESPONSE
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 3 days
+ PRACTICES : P5  Continuous monitoring       (Tier 1, 41 mentions)
+             P18 Logging                     (Tier 2, 21 mentions)
+             P28 Security incident management (Tier 2, 11 mentions)
+             P35 Alerting                    (Tier 3, 7 mentions - cheap bonus)
+ DEPENDS ON: Phase 06 (something must be deployed to monitor)
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Close the DevSecOps loop. Up to now everything has been pre-deployment;
+ P5 Continuous monitoring is a Tier 1 practice covering the Predict and Detect
+ lifecycle phases, i.e. security AFTER release.
+
+ Without this phase the pipeline stops at deployment and four lifecycle phases
+ (Release, Predict, Respond, Detect) have no coverage.
+
+-------------------------------------------------------------------------------
+ TASKS - SECURITY LOGGING (P18)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Structured JSON logging in the backend
+ [ ] [KIRO]    Log inventory document                        ASVS 16.1.1
+                 what is logged, format, where stored, who can access it,
+                 retention period
+ [ ] [KIRO]    Log the required security events:
+                 [ ] authentication success and failure       ASVS 16.3.1
+                 [ ] authorization denials                    ASVS 16.3.2
+                 [ ] control bypass attempts (validation, business logic,
+                     anti-automation)                         ASVS 16.3.3
+                 [ ] unexpected errors and control failures   ASVS 16.3.4
+ [ ] [KIRO]    UTC timestamps everywhere                      ASVS 16.2.2
+ [ ] [KIRO]    Required metadata: when / where / who / what   ASVS 16.2.1
+ [ ] [KIRO]    NEVER log credentials, tokens or payment data
+                 mask or hash where correlation is needed     ASVS 16.2.5
+ [ ] [KIRO]    Encode log data to prevent log injection       ASVS 16.4.1
+ [ ] [KIRO]    Ship logs OFF the application host             ASVS 16.4.3
+                 so an application compromise does not destroy the evidence
+ [ ] [KIRO]    Logstash / Elasticsearch stack  [paper: 9 and 8 mentions]
+                 or a lighter equivalent if resources are tight
+
+-------------------------------------------------------------------------------
+ TASKS - CONTINUOUS MONITORING (P5)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Prometheus for metrics            [paper: 4 mentions]
+ [ ] [KIRO]    Grafana dashboards                [paper: 8 mentions]
+ [ ] [KIRO]    Application metrics endpoint (NOT publicly exposed, ASVS 13.4.5)
+ [ ] [KIRO]    Security dashboard panels:
+                 [ ] authentication failure rate
+                 [ ] 403 authorization denial rate
+                 [ ] 429 rate-limit trigger count
+                 [ ] 5xx error rate
+                 [ ] AI endpoint usage vs the free-tier quota
+                 [ ] request latency
+ [ ] [KIRO]    Falco for runtime container monitoring (OPTIONAL)
+                 [paper: 5 mentions]
+ [ ] [KIRO]    Add monitoring services to docker-compose
+
+-------------------------------------------------------------------------------
+ TASKS - ALERTING (P35, Tier 3 - cheap bonus)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Alert rules in Prometheus:
+                 [ ] authentication failure spike (credential stuffing)
+                 [ ] authorization denial spike (enumeration / IDOR probing)
+                 [ ] rate limit repeatedly tripped by one actor
+                 [ ] AI quota approaching exhaustion (cost abuse, LLM10)
+                 [ ] service down
+ [ ] [KIRO]    Route alerts somewhere visible (Grafana, or a webhook)
+ [ ] [KIRO]    DEMONSTRATE a triggered alert, do not just configure it
+
+-------------------------------------------------------------------------------
+ TASKS - INCIDENT RESPONSE (P28)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Incident response runbook (extends SECURITY.md)
+                 detect -> contain -> assess -> remediate -> review
+ [ ] [KIRO]    Specific playbooks:
+                 [ ] leaked secret (rotate FIRST, then purge history)
+                 [ ] vulnerable dependency with an active exploit
+                 [ ] account takeover reported by a user
+                 [ ] AI key abuse / quota exhaustion
+ [ ] [KIRO]    Document every incident encountered during the project
+                 Phase 09 demonstrations ARE incidents - handle them through
+                 this process and the evidence writes itself
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] Grafana dashboard screenshots      -> evidence/P5-continuous-monitoring/
+ [ ] A TRIGGERED alert (attack simulated, alert fired)
+                                        -> evidence/P5-continuous-monitoring/
+ [ ] Sample structured log entries, redacted
+                                        -> evidence/tier2/P18-logging/
+ [ ] Log inventory document             -> evidence/tier2/P18-logging/
+ [ ] Proof that secrets are NOT in logs -> evidence/tier2/P18-logging/
+ [ ] Incident runbook                   -> evidence/tier2/P28-incident-management/
+ [ ] A handled incident record          -> evidence/tier2/P28-incident-management/
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] All required security events logged with correct metadata
+ [ ] Logs shipped off-host
+ [ ] No sensitive data in logs (verified, not assumed)
+ [ ] Dashboards live and populated with real traffic
+ [ ] At least one alert DEMONSTRABLY triggered by a simulated attack
+ [ ] Incident runbook written with concrete playbooks
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - The strongest evidence here is an alert that actually fired. Run a brute
+   force against your own staging login, show the spike, show the alert. That
+   is far more convincing than a dashboard of flat zeroes.
+
+ - Metrics endpoints are a classic information-disclosure mistake. ASVS 13.4.5
+   requires monitoring endpoints not be exposed unless intended. Verify from
+   outside the Docker network.
+
+===============================================================================
+ END OF FILE
+===============================================================================

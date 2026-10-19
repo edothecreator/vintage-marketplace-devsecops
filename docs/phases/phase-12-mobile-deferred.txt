@@ -1,0 +1,118 @@
+===============================================================================
+ PHASE 12 - MOBILE APPLICATION  (DEFERRED)
+===============================================================================
+
+ STATUS    : NOT STARTED - DELIBERATELY DEFERRED
+ EFFORT    : not yet estimated
+ PRACTICES : OWASP Mobile Top 10 brought into scope
+ DEPENDS ON: Phases 00-11 complete and evidenced
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ WHY THIS IS DEFERRED
+-------------------------------------------------------------------------------
+
+ The project brief requires a mobile application as part of the mandatory
+ architecture. It is NOT being skipped.
+
+ It is deferred because the pipeline is where the grade lives, and a complete
+ web application with a fully evidenced pipeline is worth more than two
+ half-finished clients with a thin pipeline.
+
+ This file exists now so that the architecture decisions taken in Phase 01
+ already account for a second client, and no rework is needed later.
+
+ PLANNED STACK: React Native (Expo), reusing the same API contract and the
+ same TypeScript types as the web front-end.
+
+-------------------------------------------------------------------------------
+ WHAT CARRIES OVER UNCHANGED (no extra work)
+-------------------------------------------------------------------------------
+
+ [x] REST API and ALL server-side controls
+ [x] Authentication and authorization logic
+ [x] Threat model (extended with one mobile client flow)
+ [x] CI/CD platform and secret management
+ [x] SAST, SCA, secret scanning pipeline stages
+ [x] Monitoring and logging backend
+ [x] ASVS server-side requirements
+ [x] Abuse-case test suite (it tests the API, not the client)
+
+ This is the payoff of designing the API client-agnostic in Phase 01.
+
+-------------------------------------------------------------------------------
+ TASKS - NEW WORK REQUIRED
+-------------------------------------------------------------------------------
+
+ SCAFFOLD
+ [ ] React Native (Expo) project
+ [ ] Shared API client reusing the backend TypeScript types
+ [ ] Screens: login, browse, listing detail, my orders, place order
+
+ OWASP MOBILE TOP 10 ANALYSIS (required by brief section 5.b)
+ [ ] Map each applicable Mobile Top 10 risk to a control
+ [ ] M1  Improper credential usage
+ [ ] M2  Inadequate supply chain security
+ [ ] M3  Insecure authentication / authorization
+ [ ] M4  Insufficient input/output validation
+ [ ] M5  Insecure communication
+ [ ] M6  Inadequate privacy controls
+ [ ] M8  Security misconfiguration
+ [ ] M9  Insecure data storage
+ [ ] M10 Insufficient cryptography
+
+ MOBILE-SPECIFIC CONTROLS
+ [ ] Secure local storage - tokens in the platform keystore, NEVER in
+     AsyncStorage or plain files
+ [ ] Certificate pinning / strict TLS validation
+ [ ] No sensitive data in logs or crash reports
+ [ ] Screenshot/background redaction for sensitive screens
+ [ ] Root / jailbreak posture decision (detect? warn? ignore? - decide and
+     document, do not leave implicit)
+ [ ] Reverse-engineering resistance: obfuscation decision, documented
+ [ ] Build signing and artefact integrity
+ [ ] No secrets in the app bundle (a mobile binary is NOT a trusted store)
+
+ PIPELINE ADDITIONS
+ [ ] MobSF (Mobile Security Framework) as a mobile SAST stage
+ [ ] Mobile dependency scanning
+ [ ] Build signing in CI with keys from the secret store
+ [ ] Artefact publication
+
+ EVIDENCE
+ [ ] MobSF scan report
+ [ ] Proof that no token is in plain local storage
+ [ ] Certificate pinning demonstrated (intercept attempt fails)
+ [ ] Mobile Top 10 risk -> control mapping table
+ [ ] Signed build artefact
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] Mobile app functional against the same REST API
+ [ ] Mobile Top 10 analysed with controls mapped
+ [ ] MobSF integrated into the pipeline
+ [ ] No secrets or tokens recoverable from the app bundle or local storage
+ [ ] Mobile section added to the report
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - If time runs short, a reduced mobile client (browse + login + view orders)
+   that is genuinely secure and genuinely scanned beats a feature-complete one
+   that is neither. The brief rewards security depth over feature count.
+
+ - A mobile binary ships to the user's device. Anything embedded in it is
+   readable. This changes the threat model meaningfully compared to the web
+   client and should be stated explicitly in the report.
+
+ - Do NOT start this phase until Phase 11 evidence is complete. The risk this
+   whole deferral is designed to avoid is ending up with two unfinished clients
+   and an unevidenced pipeline.
+
+===============================================================================
+ END OF FILE
+===============================================================================

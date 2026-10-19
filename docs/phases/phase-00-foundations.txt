@@ -1,0 +1,210 @@
+===============================================================================
+ PHASE 00 - FOUNDATIONS & REPOSITORY GOVERNANCE
+===============================================================================
+
+ STATUS    : IN PROGRESS  (engineering done / evidence incomplete)
+ EFFORT    : 2 days
+ PRACTICES : P6 Continuous integration    (Tier 1)
+             P8 Shift left security       (Tier 1)
+             P9 Collaboration             (Tier 1)
+             P11 Code review              (Tier 1)
+             P15 VCS                      (Tier 2)
+             P30 Secrets management       (Tier 2)
+ DEPENDS ON: nothing
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+ OWNERS: [KIRO] [MOHAMED] [TEAM] [BOTH]
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Put the security governance in place BEFORE any application code exists, so
+ that every later commit is gated from the first push onward.
+
+ Retrofitting security onto a finished application is the anti-pattern ASVS
+ explicitly warns about. This phase makes that impossible by construction.
+
+ Six practices are banked here without writing a line of business logic.
+
+-------------------------------------------------------------------------------
+ TASKS - REPOSITORY SETUP
+-------------------------------------------------------------------------------
+
+ [x] [KIRO]    Initialise local git repository on branch main
+ [x] [KIRO]    Create folder structure
+                 backend/ frontend/ docs/ evidence/ tasks/ .github/
+ [x] [KIRO]    .gitignore - Node, secrets, Docker, Terraform, tool caches
+ [x] [KIRO]    .editorconfig
+ [x] [MOHAMED] gh auth login  (authenticated as @edothecreator)
+ [x] [BOTH]    gh auth setup-git
+                 REQUIRED: Git Credential Manager was hanging on a dialog that
+                 cannot be displayed in a non-interactive shell. Teammates will
+                 hit the same problem on clone. MUST go in the setup docs.
+ [x] [KIRO]    Create GitHub repository
+                 edothecreator/vintage-marketplace-devsecops
+ [x] [KIRO]    Push main to origin
+ [x] [KIRO]    Invite 3 collaborators with push permission
+ [x] [KIRO]    Verify all 4 GitHub usernames exist via API before use
+                 edothecreator / erraguibiabdelilah / Hanane-ELFADIL / anasIRISI
+ [x] [MOHAMED] Decide repository visibility -> PUBLIC (see ADR 0004)
+
+-------------------------------------------------------------------------------
+ TASKS - CONTINUOUS INTEGRATION (P6)
+-------------------------------------------------------------------------------
+
+ [x] [KIRO]    .github/workflows/ci.yml with 3 jobs
+                 - Secret scan (gitleaks)      full history scan
+                 - Repository hygiene          runs the same pre-commit hooks
+                 - Build and test              conditional on scaffold existing
+ [x] [KIRO]    Least-privilege workflow permissions (contents: read)
+ [x] [KIRO]    Concurrency control (cancel superseded runs, except on main)
+ [x] [KIRO]    Make the pipeline pass on an EMPTY project
+                 Reason: branch protection needs a stable required check name
+                 from day one. The job detects the missing scaffold and exits 0.
+ [x] [KIRO]    Verify CI run is green
+ [x] [KIRO]    Verify the 3 job names match the required status check contexts
+                 EXACTLY (a mismatch makes protection unenforceable)
+
+-------------------------------------------------------------------------------
+ TASKS - SHIFT LEFT SECURITY (P8) + SECRETS (P30)
+-------------------------------------------------------------------------------
+
+ [x] [KIRO]    .pre-commit-config.yaml
+                 gitleaks + hygiene hooks + local .env refusal hook
+ [x] [KIRO]    .gitleaks.toml with project-specific rules
+                 gemini-api-key / generic-jwt-secret-assignment /
+                 hardcoded-db-url / hardcoded-password-assignment
+ [x] [KIRO]    Narrowly scoped allowlist (placeholders and fixtures only)
+ [x] [KIRO]    Install pre-commit, install hook scripts
+ [x] [KIRO]    VERIFY hooks pass on a clean tree
+ [x] [KIRO]    VERIFY gitleaks actually detects a planted secret
+                 Planted a fake Gemini key AND a hardcoded JWT secret.
+                 Both rules fired, secrets redacted in output, test file deleted.
+                 This pre-validates the Phase 09 V2 demonstration.
+ [x] [KIRO]    Keep hooks FAST - slow hooks teach developers to use --no-verify
+ [ ] [KIRO]    Add ESLint / Prettier / typecheck hooks
+                 DEFERRED to Phase 02 on purpose: on an empty project they fail
+                 immediately, and a broken commit path is the fastest way to
+                 teach the team to bypass the hooks.
+
+-------------------------------------------------------------------------------
+ TASKS - CODE REVIEW (P11) + COLLABORATION (P9)
+-------------------------------------------------------------------------------
+
+ [x] [KIRO]    .github/CODEOWNERS with real verified usernames
+ [x] [KIRO]    .github/pull_request_template.md
+                 security checklist incl. an AI-assisted-code section
+ [x] [KIRO]    .github/branch-protection.json  (settings as code)
+ [x] [KIRO]    .github/ruleset-main.json       (alternative, kept for reference)
+ [x] [KIRO]    Apply branch protection to main and VERIFY it is live
+                 1 approving review
+                 require review from Code Owners
+                 dismiss stale reviews on push
+                 require approval of most recent push
+                 3 required status checks, strict mode
+                 force pushes: BLOCKED
+                 deletions: BLOCKED
+                 conversation resolution: REQUIRED
+ [!] [MOHAMED] Chase the 3 collaborators to ACCEPT their invitations
+                 BLOCKER for P9/P11 evidence. Until they accept, CODEOWNERS
+                 reports 10 errors and code-owner review does NOT function.
+                 Verify clean with:
+                   gh api repos/edothecreator/vintage-marketplace-devsecops/codeowners/errors
+ [ ] [MOHAMED] Decide: set enforce_admins = true?
+                 Currently FALSE so the owner can bypass and is not locked out.
+                 Stronger evidence if TRUE. Recommend flipping to TRUE once at
+                 least one teammate can approve a PR.
+
+-------------------------------------------------------------------------------
+ TASKS - DOCUMENTATION
+-------------------------------------------------------------------------------
+
+ [x] [KIRO]    README.md
+ [x] [KIRO]    SECURITY.md - policy, gate table, incident response
+ [x] [KIRO]    PROGRESS.md - authoritative live project state
+ [x] [KIRO]    evidence/README.md - capture conventions and what counts
+ [x] [KIRO]    docs/adr/0001 - record architecture decisions
+ [x] [KIRO]    docs/adr/0002 - GitHub Actions as CI platform
+ [x] [KIRO]    docs/adr/0003 - pre-commit framework for shift-left hooks
+ [x] [KIRO]    docs/adr/0004 - public repository visibility + V2 mitigation
+ [x] [KIRO]    docs/phases/ - this phase tracking folder
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [x] [KIRO]    .github/workflows/ci.yml committed              -> P6
+ [x] [MOHAMED] Screenshot: green CI run showing all 3 jobs     -> P6
+                 Received and accepted. Also happens to prove the conditional
+                 scaffold logic works.
+                 File: evidence/P6-continuous-integration/01-first-pipeline-run.png
+ [x] [KIRO]    .pre-commit-config.yaml + .gitleaks.toml         -> P8 P30
+ [ ] [KIRO]    Terminal capture of gitleaks blocking a planted secret -> P8
+                 Re-run and save as a text/image artefact.
+ [x] [KIRO]    .github/CODEOWNERS committed                    -> P9
+ [ ] [MOHAMED] Screenshot: collaborators page                  -> P9
+                 WAIT until invites are accepted - pending invites prove the
+                 opposite of what is needed.
+                 File: evidence/P9-collaboration/01-collaborators.png
+ [x] [KIRO]    .github/pull_request_template.md committed      -> P11
+ [!] [MOHAMED] Screenshot: branch protection SETTINGS          -> P11
+                 First attempt REJECTED: it showed only a tooltip saying the
+                 branch is protected, not WHICH protections are active. The
+                 substance of the P11 claim is the settings themselves.
+                 Capture from:
+                   /settings/branches -> Edit on the main rule
+                 Two shots (the page is long):
+                   01-branch-protection-reviews.png
+                     require PR, 1 approval, dismiss stale, code owner review,
+                     require last push approval
+                   02-branch-protection-status-checks.png
+                     the 3 required checks, require up-to-date branches,
+                     force pushes and deletions not allowed
+ [ ] [KIRO]    README.md in each evidence folder explaining the artefacts
+                 A folder of bare screenshots is not evidence.
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [x] Repository exists, is pushed, and CI is green
+ [x] Branch protection is active and verified via API
+ [x] Pre-commit hooks installed and proven to block a real secret
+ [x] All 4 ADRs written
+ [ ] CODEOWNERS reports ZERO errors (needs invite acceptance)
+ [ ] All evidence screenshots captured and committed with explanatory READMEs
+
+ CURRENT VERDICT
+   Engineering: DONE
+   Evidence   : INCOMPLETE
+   Phase 01 is NOT blocked by either gap and can start immediately.
+
+-------------------------------------------------------------------------------
+ NOTES / GOTCHAS LEARNED IN THIS PHASE
+-------------------------------------------------------------------------------
+
+ 1. GitHub Free does NOT allow branch protection OR rulesets on private
+    repositories. Both APIs return HTTP 403 "Upgrade to GitHub Pro or make this
+    repository public". This forced the visibility decision - see ADR 0004.
+
+ 2. Public visibility activates GitHub's own secret-scanning push protection,
+    which would BLOCK the Phase 09 V2 demo if it used a Google API key. V2 now
+    uses the hardcoded JWT secret pattern instead. Documented in .gitleaks.toml
+    and ADR 0004.
+
+ 3. CODEOWNERS silently ignores usernames that are not collaborators. The file
+    can look like a working control while enforcing nothing. ALWAYS verify with
+    the codeowners/errors endpoint.
+
+ 4. Required status check contexts must match job NAMES exactly. A rename in
+    ci.yml silently detaches the protection rule.
+
+ 5. Git Credential Manager hangs when it cannot show a dialog. gh auth setup-git
+    routes git credentials through the gh token instead.
+
+ 6. pre-commit.exe is not on PATH on this machine. Use: python -m pre_commit
+
+===============================================================================
+ END OF FILE
+===============================================================================

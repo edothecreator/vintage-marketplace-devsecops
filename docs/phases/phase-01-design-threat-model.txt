@@ -1,0 +1,178 @@
+===============================================================================
+ PHASE 01 - DESIGN, THREAT MODEL, ASVS SCOPING
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 3 days
+ PRACTICES : P7  Threat modelling              (Tier 1, 40 mentions)
+             P23 Risk assessment               (Tier 2, 15 mentions)
+             P24 Security requirement gathering (Tier 2, 13 mentions)
+ DEPENDS ON: Phase 00 (not blocking - can start now)
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+ OWNERS: [KIRO] [MOHAMED] [TEAM] [BOTH]
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Produce the three design documents that the project brief lists as required
+ deliverables, BEFORE any application code is written.
+
+ *** NO APPLICATION CODE IS WRITTEN IN THIS PHASE. ***
+
+ Why the order matters: P7 Threat modelling is a Tier 1 practice sitting in the
+ "Plan" phase of the DevSecOps lifecycle. Producing a threat model after the
+ code exists is theatre, and commit dates make it obvious. The chronology in
+ git IS part of the evidence.
+
+-------------------------------------------------------------------------------
+ TASKS - ARCHITECTURE DOCUMENTATION
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Component diagram
+                 web front-end / REST API / PostgreSQL / object storage /
+                 Gemini LLM provider as an EXTERNAL TRUST BOUNDARY
+ [ ] [KIRO]    Data-flow diagram with trust boundaries marked
+ [ ] [KIRO]    Include the mobile app as a PLANNED FUTURE CLIENT
+                 so the architecture does not need rework in Phase 12
+ [ ] [KIRO]    Document the API contract (endpoint list, auth, roles)
+ [ ] [KIRO]    Data classification table (ASVS 14.1.1)
+                 what data exists, its sensitivity level, required protection
+ [ ] [MOHAMED] Review and approve the architecture before coding starts
+
+-------------------------------------------------------------------------------
+ TASKS - THREAT MODEL (P7)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Choose tool: OWASP Threat Dragon
+                 Cited in Prates & Pereira Table 8 (6 mentions) so the choice
+                 is defensible from the source paper.
+ [ ] [KIRO]    Apply STRIDE per data flow
+ [ ] [KIRO]    Minimum threats to cover (from the attack plan):
+                 [ ] Tampering with listingId to edit another seller's item
+                     -> server-side ownership check, ASVS 8.2.2
+                 [ ] Two buyers purchase the same unique item
+                     -> transactional row lock, ASVS 2.3.4
+                 [ ] Upload of an executable disguised as an image
+                     -> magic bytes + re-encode + no-exec store, ASVS 5.2.2/5.3.1
+                 [ ] Bulk scraping of listings and seller data
+                     -> rate limiting / anti-automation, ASVS 2.4.1
+                 [ ] Prompt injection via listing title into the LLM
+                     -> input sanitisation, output encoding, no secrets in prompt
+                 [ ] Injection via the search parameter
+                     -> parameterised queries / ORM, ASVS 1.2.4
+                 [ ] Privilege escalation to the admin moderation endpoint
+                     -> function-level authz, ASVS 8.2.1
+                 [ ] Stored XSS via review body
+                     -> output sanitisation, ASVS 1.3.1
+                 [ ] Token forgery / alg:none
+                     -> algorithm allow-list, ASVS 9.1.2
+ [ ] [KIRO]    Trace EVERY mitigation to a specific ASVS requirement ID
+                 This table becomes the backbone of the report.
+ [ ] [KIRO]    Export the threat model (JSON source + rendered diagram)
+ [ ] [TEAM]    Peer review of the threat model (P9 collaboration evidence)
+
+-------------------------------------------------------------------------------
+ TASKS - RISK ASSESSMENT (P23)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Rate each identified threat
+                 likelihood x impact, with business-impact reasoning
+ [ ] [KIRO]    Prioritise which controls get built first
+ [ ] [KIRO]    Document explicitly accepted risks and why they are acceptable
+                 e.g. simulated payment instead of a real payment processor
+
+-------------------------------------------------------------------------------
+ TASKS - ASVS SCOPING (P24)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Write ADR 0005 - ASVS target level
+                 DECISION: full Level 1 + targeted Level 2 on
+                   V2  validation & business logic
+                   V4  API and web service
+                   V5  file handling
+                   V6  authentication
+                   V8  authorization
+                   V13 configuration & secrets
+                   V16 logging & error handling
+ [ ] [KIRO]    Justify EXCLUSIONS in writing
+                   V10 OAuth/OIDC  - not applicable, no federated login
+                   V17 WebRTC      - not applicable, no real-time media
+                 ASVS requires the verification report to state what was
+                 INCLUDED and to justify what was excluded.
+ [ ] [KIRO]    Build the requirement checklist for the in-scope chapters
+                 Downloadable as CSV/JSON from the ASVS project.
+ [ ] [KIRO]    Write ADR 0006 - documented security decisions
+                 ASVS 5.0 has explicit "documented security decision"
+                 requirements. Cover at minimum:
+                   [ ] input validation rules per field (ASVS 2.1.1)
+                   [ ] authorization rules, function/data/field level (ASVS 8.1.1)
+                   [ ] allowed file types, sizes, handling (ASVS 5.1.1)
+                   [ ] session timeout and lifetime rationale (ASVS 7.1.1)
+                   [ ] password policy and anti-brute-force (ASVS 6.1.1)
+                   [ ] data protection levels per classification (ASVS 14.1.2)
+                   [ ] logging inventory (ASVS 16.1.1)
+                   [ ] secrets and rotation schedule (ASVS 13.1.4)
+
+-------------------------------------------------------------------------------
+ TASKS - AI SCOPE DECISION
+-------------------------------------------------------------------------------
+
+ [ ] [MOHAMED] Obtain the Gemini API key from Google AI Studio
+ [ ] [MOHAMED] Record the ACTUAL observed rate limits
+                 Published figures changed repeatedly during 2025-26. Verify,
+                 do not trust documentation.
+ [ ] [KIRO]    Write ADR 0007 - AI augmentation scope
+                 In-app   : LLM listing-description generator
+                 Pipeline : AI triage of security findings
+ [ ] [KIRO]    Map the OWASP LLM Top 10 risks that apply, with controls
+                 [ ] LLM01 prompt injection
+                 [ ] LLM02 insecure output handling
+                 [ ] LLM06 sensitive information disclosure
+                 [ ] LLM10 unbounded consumption / cost abuse
+                       NOTE: the free-tier quota makes this a REAL risk, not a
+                       theoretical one. Good demo material.
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] Threat model source file       -> evidence/P7-threat-modelling/
+ [ ] Rendered threat model diagram  -> evidence/P7-threat-modelling/
+ [ ] Threat -> mitigation -> ASVS traceability table -> evidence/P7-threat-modelling/
+ [ ] Architecture diagrams          -> docs/ and evidence/P7-threat-modelling/
+ [ ] Risk assessment table          -> evidence/tier2/P23-risk-assessment/
+ [ ] ASVS scope decision + justified exclusions -> evidence/tier2/P24-security-requirements/
+ [ ] Peer review of the threat model (PR thread) -> evidence/P9-collaboration/
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] Architecture documented and approved
+ [ ] Threat model complete, every threat traced to an ASVS requirement
+ [ ] Risk assessment complete with accepted risks stated
+ [ ] ASVS scope decided, written down, and exclusions justified
+ [ ] AI scope decided, LLM risks mapped
+ [ ] ALL of the above COMMITTED BEFORE the first application-code commit
+
+ >>> The last criterion is not bureaucratic. It is the evidence that security
+     was designed in rather than bolted on, and it is verifiable from git log.
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - ASVS 5.0 is ~350 requirements across 17 chapters. Level 1 is about 20% of
+   them. Do not attempt all 350; the scoped subset is the deliverable.
+
+ - The threat model is a required deliverable in the brief ("Threat Model" is
+   listed explicitly under documents complementaires).
+
+ - Mitigations that cannot be automated still need written evidence. That is
+   expected and acceptable - say so rather than hiding it.
+
+===============================================================================
+ END OF FILE
+===============================================================================

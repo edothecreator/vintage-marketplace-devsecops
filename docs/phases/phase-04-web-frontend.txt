@@ -1,0 +1,121 @@
+===============================================================================
+ PHASE 04 - WEB FRONT-END
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 4 days
+ PRACTICES : P20 Secure coding (Tier 2)
+ DEPENDS ON: Phase 02 (API must exist)
+ CAN RUN IN PARALLEL WITH: Phase 03
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ A web front-end that satisfies the brief's mandatory architecture requirement
+ and implements the ASVS V3 (web front-end security) controls.
+
+ Kept deliberately plain. This is not a UI project - the pipeline is the
+ deliverable. No design system, no animations, no state-management library
+ unless genuinely needed.
+
+ STACK: React + TypeScript + Vite
+
+-------------------------------------------------------------------------------
+ TASKS - SCAFFOLD
+-------------------------------------------------------------------------------
+
+ [ ] [TEAM]    Vite + React + TypeScript project in frontend/
+ [ ] [TEAM]    Shared API client with typed responses
+ [ ] [KIRO]    ESLint + security plugin, same standard as backend
+ [ ] [KIRO]    Add frontend build and lint to ci.yml
+ [ ] [KIRO]    Reuse the backend's TypeScript types for the API contract
+
+-------------------------------------------------------------------------------
+ TASKS - PAGES (minimum)
+-------------------------------------------------------------------------------
+
+ [ ] [TEAM]    Register / Login
+ [ ] [TEAM]    Browse + search listings
+ [ ] [TEAM]    Listing detail with images
+ [ ] [TEAM]    Seller dashboard - my listings, create, edit, delete
+ [ ] [TEAM]    Image upload UI
+ [ ] [TEAM]    Place order (simulated payment)
+ [ ] [TEAM]    My orders
+ [ ] [TEAM]    Post a review
+ [ ] [TEAM]    Admin moderation view
+ [ ] [TEAM]    AI "generate description" button (wired up in Phase 08)
+
+-------------------------------------------------------------------------------
+ TASKS - SECURITY CONTROLS (ASVS V3 + V14)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    NO tokens in localStorage or sessionStorage
+                 session handled by the __Host- HttpOnly cookie
+                 ASVS 14.3.3
+ [ ] [KIRO]    Never use dangerouslySetInnerHTML
+                 if rich text is truly needed, sanitise with DOMPurify first
+                 ASVS 1.3.1, 3.2.2
+ [ ] [KIRO]    Render user content as text, not HTML (createTextNode/textContent)
+                 ASVS 3.2.2
+ [ ] [KIRO]    Content Security Policy verified in the browser
+                 object-src none, base-uri none, no unsafe-inline
+                 ASVS 3.4.3
+ [ ] [KIRO]    CSRF defence consistent with the cookie strategy
+                 SameSite + anti-forgery token or Sec-Fetch validation
+                 ASVS 3.5.1, 3.5.2, 3.3.2
+ [ ] [KIRO]    Client-side validation present for UX, but NEVER relied on
+                 ASVS 2.2.2
+ [ ] [KIRO]    Clear authenticated data from the client on logout
+                 ASVS 14.3.1
+ [ ] [KIRO]    Anti-caching headers respected for sensitive views
+                 ASVS 14.3.2
+ [ ] [KIRO]    No sensitive data in URLs or query strings
+                 ASVS 14.2.1
+ [ ] [KIRO]    External resources use Subresource Integrity, or are self-hosted
+                 ASVS 3.6.1
+ [ ] [KIRO]    Accessibility pass - semantic HTML, labels, keyboard navigation,
+                 contrast. (Required by our own standards; note that full WCAG
+                 conformance needs manual assistive-technology testing and
+                 expert review, which is out of scope here.)
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] Browser devtools showing CSP and security response headers
+                                  -> evidence/tier2/P20-secure-coding/
+ [ ] Browser storage inspector showing NO tokens stored
+                                  -> evidence/tier2/P20-secure-coding/
+ [ ] XSS attempt in a review rendered inert (before/after)
+                                  -> evidence/P3-automated-security-testing/
+ [ ] Screenshots of the working application (needed for the report and demo)
+                                  -> evidence/tier2/
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] All pages functional against the real API
+ [ ] CSP active with no unsafe-inline and no console violations
+ [ ] No tokens in browser storage (verified in devtools)
+ [ ] Stored XSS attempt renders as inert text
+ [ ] Frontend build and lint in CI and green
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - Good delegation candidate: hand to the team member owning /frontend/ per
+   CODEOWNERS (@Hanane-ELFADIL). Kiro writes the task brief and reviews the PR
+   against the security checklist.
+
+ - A strict CSP with no unsafe-inline often fights a dev server's hot reload.
+   Expect to configure the dev and production CSP separately, and DOCUMENT why
+   - the difference itself is an ASVS documented-decision item.
+
+===============================================================================
+ END OF FILE
+===============================================================================

@@ -1,0 +1,124 @@
+===============================================================================
+ PHASE 06 - CONTAINERISATION & DEPLOYMENT
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 3 days
+ PRACTICES : P10 Continuous deployment    (Tier 1, 34 mentions)
+             P12 Infrastructure as code   (Tier 2, 28 mentions)
+             P22 Environment hardening    (Tier 2, 16 mentions)
+             P21 Configuration management (Tier 2, 17 mentions - optional)
+ DEPENDS ON: Phase 02, Phase 04
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Containerise the application, harden the images and environment, define the
+ infrastructure as code, and deploy automatically to a staging environment.
+
+ Dockerfiles and IaC files are both explicitly listed as required deliverables
+ in the project brief.
+
+-------------------------------------------------------------------------------
+ TASKS - CONTAINERISATION + HARDENING (P22)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Multi-stage Dockerfile for the backend
+                 build stage -> minimal runtime stage
+ [ ] [KIRO]    Run as a NON-ROOT user
+ [ ] [KIRO]    Minimal base image (alpine or distroless), version PINNED by digest
+ [ ] [KIRO]    No build tools, no shell utilities in the runtime image
+ [ ] [KIRO]    Read-only root filesystem where possible
+ [ ] [KIRO]    Drop all Linux capabilities, add back only what is needed
+ [ ] [KIRO]    HEALTHCHECK instruction
+ [ ] [KIRO]    .dockerignore (do not ship .git, .env, node_modules, tests)
+ [ ] [KIRO]    Dockerfile for the frontend (static build served by nginx)
+ [ ] [KIRO]    nginx hardening: no version banner, security headers, no autoindex
+ [ ] [KIRO]    Trivy scan of BOTH images in CI (gate from Phase 05)
+ [ ] [KIRO]    Docker Bench for Security run        [paper: 5 mentions]
+
+-------------------------------------------------------------------------------
+ TASKS - INFRASTRUCTURE AS CODE (P12)
+-------------------------------------------------------------------------------
+
+ [ ] [MOHAMED] DECIDE: local Docker Compose staging, or a cloud deployment?
+                 The brief requires cloud deployment files only IF hosted in
+                 the cloud. Compose-based staging is cheaper and sufficient.
+                 Decide CONSCIOUSLY and record it - do not leave it implicit.
+ [ ] [KIRO]    docker-compose.yml for the full stack
+                 API + PostgreSQL + frontend + (Phase 07 monitoring)
+ [ ] [KIRO]    Compose security: no privileged containers, internal networks,
+                 secrets via env_file not inline, no unnecessary port exposure
+ [ ] [KIRO]    Terraform definitions if a cloud deployment is chosen
+                 [paper: 11 mentions]
+ [ ] [KIRO]    Checkov scan of all IaC in CI (gate from Phase 05)
+ [ ] [KIRO]    Ansible for configuration management (OPTIONAL, P21)
+                 [paper: 15 mentions]
+
+-------------------------------------------------------------------------------
+ TASKS - CONTINUOUS DEPLOYMENT (P10)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Build and push images on merge to main
+ [ ] [KIRO]    Tag images by commit SHA, never only :latest
+ [ ] [KIRO]    Auto-deploy to staging after all gates pass
+ [ ] [KIRO]    Smoke test after deploy; fail the deployment if it fails
+ [ ] [KIRO]    Rollback procedure, documented AND demonstrated
+ [ ] [KIRO]    Deployment requires every security gate green first
+                 (this is the whole point of P10 in a DevSecOps context)
+ [ ] [KIRO]    Secrets injected from the GitHub secret store, never baked
+                 into images                                    ASVS 13.3.1
+
+-------------------------------------------------------------------------------
+ TASKS - SECRETS IN DEPLOYMENT (P30 continued)
+-------------------------------------------------------------------------------
+
+ [ ] [MOHAMED] Add required secrets to the GitHub repository secret store
+                 GEMINI_API_KEY, database credentials, JWT signing key
+ [ ] [KIRO]    Consider HashiCorp Vault for the full demonstration
+                 [paper: 7 mentions] - optional, higher effort
+ [ ] [KIRO]    Document the secret rotation schedule        ASVS 13.1.4
+
+-------------------------------------------------------------------------------
+ EVIDENCE TO CAPTURE
+-------------------------------------------------------------------------------
+
+ [ ] Dockerfiles                        -> in repo (required deliverable)
+ [ ] docker-compose.yml / Terraform     -> in repo (required deliverable)
+ [ ] Trivy scan before/after hardening  -> evidence/tier2/P22-environment-hardening/
+ [ ] Docker Bench output                -> evidence/tier2/P22-environment-hardening/
+ [ ] Checkov IaC scan results           -> evidence/tier2/P12-iac/
+ [ ] Successful deployment log          -> evidence/P10-continuous-deployment/
+ [ ] Rollback demonstration             -> evidence/P10-continuous-deployment/
+ [ ] Proof that a failed gate BLOCKS deployment
+                                        -> evidence/P10-continuous-deployment/
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] Both images build, run as non-root, and pass Trivy
+ [ ] Full stack runs via one compose command
+ [ ] Deployment to staging is fully automated
+ [ ] A failing security gate demonstrably prevents deployment
+ [ ] Rollback demonstrated and documented
+ [ ] No secret present in any image layer (verify with history inspection)
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - "Trivy before hardening vs after hardening" is one of the easiest and most
+   convincing before/after comparisons in the whole project. Capture the
+   BEFORE output deliberately, early - it is tempting to harden first and then
+   have nothing to compare against.
+
+ - Good delegation candidate: the infrastructure owner per CODEOWNERS
+   (@anasIRISI).
+
+===============================================================================
+ END OF FILE
+===============================================================================

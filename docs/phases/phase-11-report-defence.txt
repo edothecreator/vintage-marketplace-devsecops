@@ -1,0 +1,154 @@
+===============================================================================
+ PHASE 11 - REPORT, DOCUMENTATION, DEFENCE
+===============================================================================
+
+ STATUS    : NOT STARTED
+ EFFORT    : 4 days (probably optimistic - see notes)
+ PRACTICES : P14 Security training (Tier 2, 27 mentions)
+ DEPENDS ON: all previous phases
+
+ LEGEND: [x] done  [ ] not started  [~] in progress  [!] blocked
+
+-------------------------------------------------------------------------------
+ GOAL
+-------------------------------------------------------------------------------
+
+ Assemble the deliverables. If the ADRs, threat model, evidence folders and
+ phase files have been kept up to date throughout, this phase is assembly
+ rather than authorship. If they have not, this phase is where the project
+ fails.
+
+-------------------------------------------------------------------------------
+ TASKS - TECHNICAL REPORT (required sections from the brief)
+-------------------------------------------------------------------------------
+
+ [ ] [TEAM]    1. Context and objectives
+ [ ] [TEAM]    2. Application architecture
+                   + architecture diagram (from Phase 01)
+ [ ] [KIRO]    3. DevSecOps pipeline architecture
+                   + pipeline diagram mapped to lifecycle phases
+ [ ] [KIRO]    4. Security tools used and their role
+                   one subsection per tool, cited to Prates & Pereira Table 8
+ [ ] [KIRO]    5. Results of the different controls
+                   per practice: the 6-step demonstration chain
+ [ ] [KIRO]    6. Vulnerabilities detected and their correction
+                   the 7 Phase 09 demonstrations + any real findings
+ [ ] [KIRO]    7. Pipeline performance impact analysis
+                   from Phase 10
+ [ ] [KIRO]    8. Limits and perspectives
+                   be honest: what we did not cover and why
+
+ ADDITIONAL SECTIONS WORTH INCLUDING
+ [ ] [KIRO]    The 11 Tier 1 practices, identified and mapped to our pipeline
+                 (explicitly required: "identifier les 11 pratiques Tier 1")
+ [ ] [KIRO]    Tier 2 practices implemented, each with objective / tool /
+                 pipeline integration / results / security contribution
+                 (the brief specifies exactly these five points)
+ [ ] [KIRO]    OWASP coverage: Top 10:2025, API Top 10, LLM Top 10
+                 (Mobile Top 10 deferred with Phase 12)
+ [ ] [KIRO]    ASVS verification report (from Phase 10)
+ [ ] [KIRO]    AI usage and the security of AI-generated code (brief section 7)
+ [ ] [KIRO]    Threat model summary
+
+-------------------------------------------------------------------------------
+ TASKS - COMPLEMENTARY DOCUMENTS (required deliverables)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Architecture diagrams
+ [ ] [KIRO]    Threat model (from Phase 01)
+ [ ] [KIRO]    Security tool results (from evidence/)
+ [ ] [KIRO]    Test scripts (the abuse-case suite)
+ [ ] [MOHAMED] Screenshots (collected throughout, not at the end)
+ [ ] [TEAM]    Installation and usage documentation
+                 MUST include the gh auth setup-git gotcha
+                 MUST include python -m pre_commit (not on PATH)
+
+-------------------------------------------------------------------------------
+ TASKS - CODE AND DEPLOYMENT DELIVERABLES
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Source code - already in the repository
+ [ ] [KIRO]    APIs and tests - already in the repository
+ [ ] [KIRO]    Pipeline configuration files - already in the repository
+ [ ] [KIRO]    Dockerfiles - from Phase 06
+ [ ] [KIRO]    Cloud deployment files IF a cloud deployment was chosen
+ [ ] [KIRO]    IaC files - from Phase 06
+ [ ] [KIRO]    Deployment scripts
+
+-------------------------------------------------------------------------------
+ TASKS - SECURITY TRAINING (P14)
+-------------------------------------------------------------------------------
+
+ [ ] [KIRO]    Secure coding guidelines document for the team
+ [ ] [KIRO]    Onboarding note: how to work on this repo safely
+ [ ] [TEAM]    Record that each member reviewed the guidelines
+                 (that record IS the P14 evidence)
+
+-------------------------------------------------------------------------------
+ TASKS - PRESENTATION AND DEMO
+-------------------------------------------------------------------------------
+
+ [ ] [TEAM]    Slide deck
+ [ ] [KIRO]    Demo script with exact timings
+ [ ] [BOTH]    REHEARSE the live demo end to end
+ [ ] [KIRO]    Prepare a recorded fallback in case live demo fails
+
+ DEMO RUNNING ORDER (recommended)
+ [ ] 1. Application working - brief, 2 minutes maximum
+ [ ] 2. Pipeline running on a normal commit, all gates green
+ [ ] 3. *** V5 IDOR demonstration *** lead with this
+         SAST passes, DAST passes, OUR test suite catches it
+ [ ] 4. One scanner demonstration (V1 SQLi or V3 vulnerable dependency)
+ [ ] 5. AI triage comment on a pull request
+ [ ] 6. Monitoring dashboard with a triggered alert
+ [ ] 7. Performance analysis numbers
+
+-------------------------------------------------------------------------------
+ TASKS - DEFENCE PREPARATION
+-------------------------------------------------------------------------------
+
+ [ ] [TEAM]    Each member must explain any code they shipped, including
+                 AI-assisted code (explicitly required by the brief)
+ [ ] [KIRO]    Prepare answers to the likely questions:
+                 [ ] Why is the repository public? -> ADR 0004
+                 [ ] Why these 11 practices? -> Prates & Pereira Table 7
+                 [ ] Why ASVS L1 + partial L2, not L2 entirely? -> ADR 0005
+                 [ ] Why fail the build on X but only warn on Y? -> ADR 0008
+                 [ ] What does your pipeline NOT catch? -> V4 and V5 analysis
+                 [ ] How much did security slow the pipeline? -> Phase 10
+                 [ ] What are the risks of your AI feature? -> LLM Top 10 map
+                 [ ] Which parts were AI-generated and how were they verified?
+ [ ] [KIRO]    Rehearse the honest answer to "what are the limits of your work"
+
+-------------------------------------------------------------------------------
+ EXIT CRITERIA
+-------------------------------------------------------------------------------
+
+ [ ] Report complete with all 8 required sections
+ [ ] All 11 Tier 1 practices demonstrated with evidence
+ [ ] Every implemented Tier 2 practice documented with its 5 required points
+ [ ] All complementary documents delivered
+ [ ] Installation documentation tested by someone who has never run the project
+ [ ] Demo rehearsed with a working fallback
+ [ ] Every team member able to explain their own contribution
+
+-------------------------------------------------------------------------------
+ NOTES
+-------------------------------------------------------------------------------
+
+ - 4 days is optimistic for a report covering 8 sections, 11 Tier 1 practices
+   and 13 Tier 2 practices. It is achievable ONLY because the ADRs, threat
+   model and evidence READMEs were written as the work happened. If any of
+   those were skipped, add a week.
+
+ - Test the installation documentation on a clean machine, or at least have a
+   teammate who did not write it follow it from scratch. Documentation that
+   only works for its author is a common and avoidable loss of marks.
+
+ - In "limits and perspectives", be genuinely honest: mobile deferred, IAST not
+   implemented, RASP not implemented, no real payment integration, staging not
+   production. Stating limits precisely reads as competence, not weakness.
+
+===============================================================================
+ END OF FILE
+===============================================================================
