@@ -58,15 +58,26 @@
 - [x] `README.md`
 - [x] `PROGRESS.md` (this file)
 
+- [x] `SECURITY.md` — security policy, pipeline gates, incident response
+- [x] `.gitleaks.toml` — secret scanning, custom Gemini/JWT/DB-URL rules
+- [x] `.pre-commit-config.yaml` — pre-commit hooks (P8 shift-left)
+- [x] `.github/workflows/ci.yml` — CI skeleton (P6), passes on empty project
+- [x] `.github/pull_request_template.md` — security checklist in every PR (P11)
+- [x] ADR 0001 — record architecture decisions
+- [x] ADR 0002 — GitHub Actions as CI platform
+- [x] ADR 0003 — pre-commit framework for shift-left hooks
+- [x] `evidence/README.md` — evidence capture conventions
+- [x] `.editorconfig`
+- [x] **Verified locally:** all pre-commit hooks pass on a clean tree
+- [x] **Verified locally:** Gitleaks detects a planted Gemini API key and a
+      hardcoded JWT secret — pre-validates the Phase 9 V2 demonstration
+- [x] Initial commit `03a404d` (hooks executed automatically on commit)
+
 ### In progress
-- [ ] `SECURITY.md` — security policy
-- [ ] `.gitleaks.toml` — secret scanning configuration
-- [ ] `.pre-commit-config.yaml` — pre-commit hooks (P8 shift-left)
-- [ ] `CODEOWNERS` — needs real GitHub usernames (P9)
-- [ ] `.github/workflows/ci.yml` — CI skeleton (P6)
-- [ ] `.github/pull_request_template.md` — security checklist in every PR (P11)
-- [ ] ADRs 0001–0003
-- [ ] `evidence/README.md` — evidence capture conventions
+- [ ] `CODEOWNERS` — written, but contains **placeholder usernames**.
+      Must be replaced before enabling "Require review from Code Owners",
+      otherwise GitHub silently ignores the file and the control is fake.
+      Verify with: `gh api repos/<owner>/<repo>/codeowners/errors`
 
 ### Blocked on Mohamed
 - [ ] `gh auth login` — authenticate GitHub CLI
