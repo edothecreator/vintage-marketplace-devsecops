@@ -1,0 +1,8 @@
+﻿% ===========================================================================
+\chapter{Vulnerabilites detectees et corrections}
+\label{chap:vulnerabilites}
+% ===========================================================================
+
+\begin{constat}{chapitre a rediger --- phase 9}
+Chapitre central pour la demonstration exigee par le sujet. Sept vulnerabilites introduites volontairement, chacune sur sa propre branche, chacune detectee par un controle nomme, chacune corrigee. V1 injection SQL detectee par SAST. V2 secret code en dur detecte par Gitleaks, en utilisant le motif de secret JWT et non une cle Google pour les motifs exposes au chapitre 5. V3 dependance vulnerable detectee par analyse de composition. V4 en-tetes de securite supprimes detectes par DAST. V5 controle d'acces rompu detecte par notre propre suite de tests, alors que SAST et DAST ne le detectent pas. V6 image de base obsolete detectee par Trivy. V7 injection d'invite detectee par test dedie. Pour chacune : la chaine complete pratique, outil, integration, detection, resultat, action corrective.
+\end{constat}

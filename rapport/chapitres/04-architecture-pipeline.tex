@@ -1,0 +1,147 @@
+% ===========================================================================
+\chapter{Architecture de la pipeline DevSecOps}
+\label{chap:archi-pipeline}
+% ===========================================================================
+
+\begin{constat}{état de ce chapitre}
+Ce chapitre présente la conception d'ensemble de la pipeline et la
+correspondance entre pratiques, outils et étages. Les étages de la phase~0 sont
+en service ; les étages d'analyse de sécurité sont mis en œuvre en phase~5 et
+documentés au chapitre~\ref{chap:stages}.
+\end{constat}
+
+\section{Principe de conception}
+
+La pipeline est structurée par la cartographie des pratiques sur les phases du
+cycle de vie DevSecOps établie par Prates et Pereira~\cite{prates2025}. Cette
+cartographie répond à la question de l'emplacement : elle indique à quel moment
+de la chaîne chaque pratique doit intervenir.
+
+\begin{table}[H]
+\centering
+\caption{Correspondance entre phases du cycle DevSecOps, pratiques et étages de
+notre pipeline}
+\label{tab:cycle-pipeline}
+\small
+\begin{tabular}{@{}llp{7.0cm}@{}}
+\toprule
+\textbf{Phase du cycle} & \textbf{Pratiques} & \textbf{Mise en œuvre} \\
+\midrule
+Create
+& \pid{P8} \pid{P9} \pid{P20}
+& Crochets \emph{pre-commit}, \texttt{CODEOWNERS}, guide de codage sécurisé \\
+\addlinespace
+Plan
+& \pid{P7} \pid{P23} \pid{P24}
+& Modélisation des menaces, analyse de risques, périmètre ASVS \\
+\addlinespace
+Adapt
+& \pid{P6} \pid{P12}
+& Intégration continue, infrastructure en tant que code \\
+\addlinespace
+Verify
+& \pid{P1} \pid{P2} \pid{P3} \pid{P4} \pid{P11}
+& SAST, DAST, suite de tests d'abus, analyse de vulnérabilités, revue \\
+\addlinespace
+Preproduction
+& \pid{P4} \pid{P16} \pid{P22}
+& Analyse d'image, test d'intrusion, durcissement \\
+\addlinespace
+Release
+& \pid{P10}
+& Déploiement continu conditionné à la réussite des contrôles \\
+\addlinespace
+Predict / Detect
+& \pid{P5} \pid{P18}
+& Supervision continue, journalisation, alertes \\
+\addlinespace
+Respond
+& \pid{P28}
+& Procédure de gestion des incidents \\
+\addlinespace
+Configure
+& \pid{P30} \pid{P21}
+& Gestion des secrets, gestion de configuration \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\captureaplacer{figures/architecture-pipeline.png}{Schéma de la pipeline
+DevSecOps : étages, déclencheurs et points de blocage, superposés aux phases du
+cycle de vie. À produire en phase 5, lorsque tous les étages seront en service.}
+
+\section{Étages prévus et outils retenus}
+
+\subsection{Règle de traçabilité des outils}
+
+Un principe a été appliqué à l'ensemble des choix d'outillage.
+
+\begin{decision}{outils issus de la source scientifique}
+À l'exception de deux outils explicitement signalés, tous les outils retenus
+figurent dans le tableau~8 de Prates et Pereira~\cite{prates2025}. Chaque choix
+est donc rattachable à la source de référence du module.
+
+Les écarts sont signalés comme tels et justifiés en propre. Cette distinction
+est maintenue dans tout le rapport : elle évite de présenter une préférence
+personnelle comme une recommandation de la littérature.
+\end{decision}
+
+\subsection{Tableau des étages}
+
+\begin{table}[H]
+\centering
+\caption{Étages de sécurité de la pipeline}
+\label{tab:etages}
+\small
+\begin{tabular}{@{}llp{3.5cm}p{4.3cm}@{}}
+\toprule
+\textbf{Étage} & \textbf{Prat.} & \textbf{Outil} & \textbf{Déclencheur} \\
+\midrule
+Détection de secrets & \pid{P30} & Gitleaks & chaque envoi, historique complet \\
+Hygiène du dépôt     & \pid{P8}  & pre-commit & chaque envoi \\
+SAST                 & \pid{P1}  & SonarQube, ESLint-security & envoi et \emph{pull request} \\
+Composition logicielle & \pid{P13} & OWASP Dependency-Check & \emph{pull request} et nocturne \\
+Dépendances JS       & \pid{P4}  & Retire.js & \emph{pull request} \\
+Image de conteneur   & \pid{P4}  & Trivy & après construction d'image \\
+Infrastructure       & \pid{P4}  & Checkov & modification de manifeste \\
+Tests d'abus         & \pid{P3}  & Jest, Supertest & \emph{pull request} \\
+DAST                 & \pid{P2}  & OWASP ZAP & référence en PR, complet en nocturne \\
+Conformité continue  & \pid{P17} & Checkov, politique & \emph{pull request} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Retire.js mérite un commentaire particulier : cet outil est spécifique à
+l'écosystème JavaScript, ce qui constitue une adéquation directe au périmètre du
+Projet~3.
+
+\section{Politique de blocage}
+
+\begin{constat}{la politique de blocage est elle-même une décision de sécurité}
+Déterminer quels résultats font échouer la construction et lesquels ne
+produisent qu'un avertissement n'est pas un réglage technique mineur.
+
+Faire échouer la construction sur chaque résultat de faible gravité paralyse le
+travail et enseigne à l'équipe le contournement de la pipeline. Ne rien faire
+échouer rend la pipeline décorative. La position intermédiaire doit être
+justifiée explicitement, et non supposée.
+\end{constat}
+
+La politique retenue sera consignée dans le registre ADR~0008 en phase~5, et
+reproduite au chapitre~\ref{chap:stages}. Elle précisera pour chaque outil le
+seuil de gravité bloquant, ainsi que la procédure d'acceptation d'un résultat
+--- par qui, sur quel motif, et avec quelle échéance de réexamen.
+
+\section{Séparation entre contrôles rapides et analyses profondes}
+
+Deux contraintes s'opposent. Les contrôles doivent être suffisamment rapides
+pour s'exécuter à chaque \emph{pull request} sans entraver le travail ; les
+analyses dynamiques complètes ne peuvent pas l'être.
+
+La conception retenue sépare donc les déclencheurs : analyse ZAP de référence et
+analyse de composition rapide sur chaque \emph{pull request}, analyse ZAP
+complète et analyse de composition approfondie sur déclenchement nocturne
+planifié.
+
+Ce choix est à la fois une décision de sécurité et une décision de performance.
+Son effet mesuré est présenté au chapitre~\ref{chap:performance}.

@@ -1,0 +1,605 @@
+% ===========================================================================
+\chapter{Phase 0 --- Fondations et gouvernance de sécurité}
+\label{chap:phase0}
+% ===========================================================================
+
+\section{Stratégie : la sécurité avant le code}
+
+\subsection{Justification de l'ordonnancement}
+
+La première phase de réalisation ne produit aucune ligne de code applicatif.
+Elle met en place la gouvernance de sécurité du dépôt et la pipeline
+d'intégration continue, de sorte que \emph{toute} contribution ultérieure soit
+contrôlée dès son premier envoi.
+
+Ce choix découle directement de deux principes énoncés au
+chapitre~\ref{chap:fondements}.
+
+Le premier est la pratique \pid{P8} \emph{Shift left security}, définie comme
+l'intégration des considérations de sécurité le plus tôt possible dans le cycle
+de développement. L'étape la plus précoce techniquement atteignable n'est pas
+l'intégration continue : c'est le poste du développeur, avant même la création
+du commit.
+
+Le second est l'avertissement formulé par l'ASVS~5.0, selon lequel concevoir la
+cryptographie au fur et à mesure ou la moderniser après coup coûtera
+inévitablement beaucoup plus cher à mettre en œuvre de manière sécurisée que de
+l'intégrer dès le départ~\cite{owaspasvs5}. Cette observation se généralise à
+l'ensemble des contrôles.
+
+\begin{decision}{pipeline avant code applicatif}
+La pipeline d'intégration continue est créée et rendue fonctionnelle
+\emph{avant} l'existence du code applicatif.
+
+La conséquence technique est que la pipeline doit réussir sur un projet vide.
+Le travail consistant à satisfaire cette contrainte est décrit à la
+section~\ref{sec:ci-projet-vide}. Le bénéfice est qu'il devient impossible, par
+construction, d'ajouter du code non contrôlé : la règle de protection de branche
+dispose d'un nom de contrôle stable dès le premier jour.
+\end{decision}
+
+\subsection{Pratiques couvertes par cette phase}
+
+Six pratiques sont mises en œuvre dans cette phase, dont quatre de niveau
+Tier~1, sans qu'aucune logique métier n'ait été écrite.
+
+\begin{table}[H]
+\centering
+\caption{Pratiques couvertes par la phase 0}
+\label{tab:phase0-pratiques}
+\small
+\begin{tabular}{@{}llp{7.4cm}@{}}
+\toprule
+\textbf{Id.} & \textbf{Niveau} & \textbf{Mise en œuvre} \\
+\midrule
+\pid{P6}  & Tier 1 & Pipeline GitHub Actions à trois tâches \\
+\pid{P8}  & Tier 1 & Crochets \emph{pre-commit} avec Gitleaks \\
+\pid{P9}  & Tier 1 & \texttt{CODEOWNERS}, modèle de \emph{pull request} \\
+\pid{P11} & Tier 1 & Protection de branche, revue obligatoire \\
+\pid{P15} & Tier 2 & Dépôt Git, historique tracé \\
+\pid{P30} & Tier 2 & Configuration Gitleaks, règles spécifiques au projet \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Gouvernance du dépôt}
+
+\subsection{Organisation de l'équipe}
+
+Le dépôt est hébergé sur GitHub à l'adresse
+\url{https://github.com/edothecreator/vintage-marketplace-devsecops}.
+
+Les quatre membres du projet y disposent d'un accès en écriture. La répartition
+des domaines de responsabilité, formalisée dans le fichier \texttt{CODEOWNERS}
+(section~\ref{sec:codeowners}), est la suivante : pipeline et sécurité ;
+back-end et API ; front-end et suite de tests d'abus ; infrastructure,
+supervision et documentation.
+
+\subsection{Arborescence}
+
+L'arborescence a été définie dès cette phase afin que les artefacts de preuve
+disposent d'un emplacement déterminé avant d'être produits.
+
+\begin{lstlisting}[language=bash,caption={Arborescence du dépôt}]
+backend/            API REST Express.js + TypeScript
+frontend/           front-end web
+docs/
+  adr/              registres de decisions d'architecture
+  threat-model/     modele de menaces et diagrammes
+  phases/           suivi des taches par phase
+evidence/           preuves par pratique (P1..P11, tier2)
+tasks/              fiches de tache pour les membres de l'equipe
+.github/workflows/  definitions de la pipeline
+\end{lstlisting}
+
+Le répertoire \texttt{evidence/} comporte un sous-répertoire par pratique de
+niveau Tier~1. Cette organisation répond à une difficulté pratique identifiée
+dès le départ : les journaux d'exécution de pipeline expirent, les branches sont
+supprimées, les tableaux de bord sont réinitialisés. Une preuve non capturée au
+moment où elle est produite est généralement irrécupérable.
+
+\begin{decision}{capture des preuves intégrée à la définition de « terminé »}
+La capture des preuves fait partie de la définition de l'achèvement de chaque
+tâche, et non d'une tâche distincte planifiée en fin de projet.
+\end{decision}
+
+\section{P6 --- Intégration continue}
+\label{sec:ci}
+
+\subsection{Choix de la plate-forme}
+
+L'étude de Prates et Pereira recense cinq outils d'intégration continue :
+Jenkins (15 mentions), GitLab CI (8), GitHub Actions (6), Travis CI (3) et
+Circle CI (2)~\cite{prates2025}. Plusieurs options étaient donc justifiables au
+regard de la source.
+
+\begin{decision}{GitHub Actions (registre ADR 0002)}
+GitHub Actions a été retenu pour les motifs suivants :
+
+\begin{itemize}
+  \item la plate-forme est native à l'hébergement du dépôt et des
+  collaborateurs, ce qui permet l'intégration directe des contrôles obligatoires
+  aux \emph{pull requests} --- condition nécessaire pour que \pid{P11} soit
+  contraignant et non indicatif ;
+  \item aucune infrastructure à maintenir, à l'inverse de Jenkins dont
+  l'hébergement, la maintenance et la sécurisation auraient constitué un projet
+  en soi, au détriment du temps consacré à l'ingénierie de sécurité ;
+  \item l'outil Dependabot est disponible gratuitement, ce qui apporte la
+  pratique Tier~2 \pid{P27} \emph{Patch management} à coût quasi nul.
+\end{itemize}
+
+GitLab CI, deuxième outil le plus cité, a été écarté car le dépôt et les
+collaborateurs sont sur GitHub, et parce que ses fonctionnalités de sécurité les
+plus attrayantes relèvent d'offres payantes : nous aurions reconstitué les mêmes
+analyses avec les mêmes outils libres, après avoir changé de plate-forme sans
+bénéfice.
+\end{decision}
+
+\subsection{Structure de la pipeline}
+
+La pipeline de la phase 0 comporte trois tâches.
+
+\begin{table}[H]
+\centering
+\caption{Tâches de la pipeline en phase 0}
+\label{tab:ci-jobs}
+\small
+\begin{tabular}{@{}llp{6.8cm}@{}}
+\toprule
+\textbf{Tâche} & \textbf{Pratique} & \textbf{Rôle} \\
+\midrule
+\texttt{Secret scan (gitleaks)}
+& \pid{P30}
+& Analyse de l'\emph{historique complet} du dépôt, et non du seul diff \\
+\addlinespace
+\texttt{Repository hygiene (pre-commit)}
+& \pid{P8}
+& Exécute en CI les mêmes crochets que localement \\
+\addlinespace
+\texttt{Build and test}
+& \pid{P6}
+& Construction et tests ; conditionnelle à l'existence du code \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Deux choix de configuration méritent d'être explicités.
+
+Le premier concerne les \textbf{permissions du jeton d'exécution}, réduites à la
+seule lecture du contenu par défaut. Toute tâche nécessitant davantage doit le
+demander explicitement. Il s'agit de l'application du principe de moindre
+privilège à la chaîne de production elle-même.
+
+Le second concerne la \textbf{tâche d'hygiène}, qui exécute en intégration
+continue exactement les mêmes crochets que ceux installés sur le poste du
+développeur. Cette redondance est volontaire : elle garantit que l'option
+\texttt{-{}-no-verify}, qui permet localement de contourner un crochet, ne
+permet pas de contourner durablement le contrôle, car l'envoi échoue malgré
+tout.
+
+\begin{lstlisting}[language=yamlperso,caption={Extrait de
+\texttt{.github/workflows/ci.yml} --- principe de moindre privilège et
+contrôle de concurrence}]
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop", "feat/**", "fix/**", "demo/**"]
+  pull_request:
+    branches: ["main", "develop"]
+
+# Moindre privilege par defaut. Toute tache necessitant davantage
+# doit le demander explicitement.
+permissions:
+  contents: read
+
+# Un nouvel envoi sur la meme reference annule l'execution precedente,
+# sauf sur main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+\end{lstlisting}
+
+\subsection{Réussir sur un projet vide}
+\label{sec:ci-projet-vide}
+
+La contrainte énoncée en début de chapitre --- rendre la pipeline fonctionnelle
+avant l'existence du code --- impose que la tâche de construction réussisse sur
+un dépôt sans application.
+
+La solution retenue consiste à détecter la présence du code applicatif et à
+n'exécuter les étapes Node.js que conditionnellement.
+
+\begin{lstlisting}[language=yamlperso,caption={Détection conditionnelle du code
+applicatif}]
+- name: Detect application scaffold
+  id: detect
+  run: |
+    if [ -f backend/package.json ]; then
+      echo "scaffold=true" >> "$GITHUB_OUTPUT"
+    else
+      echo "scaffold=false" >> "$GITHUB_OUTPUT"
+    fi
+
+# ... etapes Node.js conditionnees par steps.detect.outputs.scaffold
+
+- name: No scaffold yet
+  if: steps.detect.outputs.scaffold == 'false'
+  run: |
+    echo "backend/package.json non present - la phase 2 n'a pas commence."
+    echo "Cette tache reussit volontairement afin que la protection de"
+    echo "branche dispose d'un controle requis stable des la phase 0."
+\end{lstlisting}
+
+\subsection{Résultat}
+
+\begin{verification}{pipeline fonctionnelle}
+La pipeline a été exécutée avec succès. Les trois tâches aboutissent, et les
+étapes Node.js sont bien ignorées en l'absence de code applicatif, ce qui valide
+la logique conditionnelle.
+\end{verification}
+
+\captureprete{figures/p06-pipeline-run.png}{Première exécution de la pipeline :
+les trois tâches réussissent. Les étapes Node.js sont ignorées, la tâche
+« No scaffold yet » confirmant la détection correcte de l'absence de code
+applicatif.}
+
+\section{P8 --- Shift left security}
+\label{sec:shift-left}
+
+\subsection{Choix du mécanisme de crochets}
+
+\begin{decision}{cadre \emph{pre-commit} (registre ADR 0003)}
+Le cadre \texttt{pre-commit}~\cite{precommit} a été retenu plutôt que Husky,
+pourtant plus idiomatique dans un projet Node.
+
+Le motif est opérationnel : Gitleaks n'est pas un paquet npm. Avec Husky, il
+aurait fallu soit demander à chaque membre de l'équipe d'installer manuellement
+le binaire Gitleaks, soit invoquer Docker à chaque commit --- lent, et
+inopérant pour quiconque n'a pas Docker en fonctionnement. Le cadre
+\texttt{pre-commit} télécharge et épingle lui-même la version du binaire : une
+seule commande suffit pour toute l'équipe.
+\end{decision}
+
+\subsection{Composition des crochets}
+
+Les crochets installés sont délibérément rapides.
+
+\begin{decision}{rapidité des crochets locaux}
+Les analyses lentes --- SAST, SCA, DAST --- restent en intégration continue et
+ne sont pas exécutées à chaque commit.
+
+Un crochet lent enseigne aux développeurs l'usage de \texttt{-{}-no-verify}, ce
+qui annule le contrôle. La rapidité n'est donc pas ici un critère de confort
+mais une condition d'efficacité du contrôle.
+\end{decision}
+
+Les crochets retenus sont : Gitleaks (détection de secrets), refus des clés
+privées, refus des fichiers volumineux, validation syntaxique YAML et JSON,
+normalisation des fins de ligne, et un crochet local refusant explicitement la
+mise en index d'un fichier \texttt{.env} réel.
+
+\subsection{Omission volontaire}
+
+Les crochets ESLint, Prettier et de vérification de types n'ont
+\emph{pas} été configurés à cette phase.
+
+\begin{decision}{report des crochets de qualité à la phase 2}
+Sur un projet vide, ces crochets échoueraient immédiatement. La première
+expérience de l'équipe avec l'outillage de sécurité serait alors un chemin de
+commit cassé --- le moyen le plus rapide d'enseigner le contournement.
+
+Ils seront ajoutés en phase 2, dès l'existence de \texttt{backend/package.json}.
+\end{decision}
+
+\section{P30 --- Gestion des secrets}
+\label{sec:secrets}
+
+\subsection{Règles spécifiques au projet}
+
+La configuration Gitleaks part du jeu de règles par défaut maintenu en amont,
+puis l'étend de quatre règles propres au projet.
+
+\begin{lstlisting}[caption={Extrait de \texttt{.gitleaks.toml} --- règles
+spécifiques au projet}]
+[extend]
+useDefault = true
+
+[[rules]]
+id = "gemini-api-key"
+description = "Cle API Google Gemini / AI Studio"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+tags = ["key", "google", "gemini"]
+
+[[rules]]
+id = "generic-jwt-secret-assignment"
+description = "Secret de signature JWT code en dur"
+regex = '''(?i)(jwt[_-]?secret|token[_-]?secret|signing[_-]?key)\s*[:=]\s*['"][^'"\s]{8,}['"]'''
+tags = ["secret", "jwt"]
+
+[[rules]]
+id = "hardcoded-db-url"
+description = "Chaine de connexion avec identifiants en ligne"
+regex = '''(?i)(postgres|postgresql|mysql|mongodb(\+srv)?)://[^:\s'"]+:[^@\s'"]+@'''
+tags = ["credential", "database"]
+\end{lstlisting}
+
+La liste d'autorisation est volontairement restreinte aux valeurs de
+substitution, aux fixtures de test et à la documentation. Une liste
+d'autorisation trop large produirait une configuration qui semble fonctionner
+tout en ne détectant rien.
+
+\subsection{Vérification de l'efficacité des règles}
+
+Une configuration de détection non testée n'est pas un contrôle. Les règles ont
+donc été vérifiées par introduction volontaire d'un fichier de test contenant
+une fausse clé Gemini et un secret de signature JWT codé en dur.
+
+\begin{verification}{les règles de détection fonctionnent}
+Les deux règles ont déclenché. La sortie de l'outil est reproduite ci-dessous,
+les valeurs sensibles étant automatiquement masquées par l'option
+\texttt{-{}-redact} :
+
+\begin{lstlisting}[basicstyle=\ttfamily\tiny,numbers=none]
+gitleaks (block secrets before commit)...................................Failed
+
+Finding:     geminiApiKey: "REDACTED0a",
+Secret:      REDACTED
+RuleID:      gemini-api-key
+Entropy:     5.285402
+Tags:        [key google gemini]
+File:        backend/src/config/TEMP-leak-test.ts
+Line:        3
+
+Finding:     REDACTED: "sup3rS3cr3tSigningKeyForTokens"
+Secret:      REDACTED
+RuleID:      generic-jwt-secret-assignment
+Entropy:     2.725481
+Tags:        [secret jwt]
+File:        backend/src/config/TEMP-leak-test.ts
+\end{lstlisting}
+
+Le fichier de test a été supprimé immédiatement après vérification. Cette
+vérification présente un second intérêt : elle valide par avance la
+démonstration V2 du chapitre~\ref{chap:vulnerabilites}.
+\end{verification}
+
+\section{P9 --- Collaboration}
+\label{sec:codeowners}
+
+\subsection{Attribution de la propriété du code}
+
+Le fichier \texttt{CODEOWNERS} associe un ou plusieurs propriétaires à chaque
+chemin du dépôt. Combiné à l'option de protection de branche exigeant la revue
+des propriétaires, il transforme la revue en exigence structurelle.
+
+Les chemins sensibles à la sécurité --- définitions de pipeline, configuration
+Gitleaks, crochets, politique de sécurité --- sont attribués au responsable de
+la pipeline, car une modification de ces fichiers peut désactiver silencieusement
+un contrôle. Les répertoires d'authentification et d'intergiciels exigent deux
+relecteurs.
+
+\begin{constat}{\texttt{CODEOWNERS} échoue silencieusement}
+GitHub ignore sans avertissement les noms d'utilisateur inexistants ou ne
+disposant pas d'un accès en écriture. Le fichier peut donc avoir toutes les
+apparences d'un contrôle fonctionnel sans rien imposer.
+
+Les quatre identifiants ont par conséquent été validés par appel à l'API avant
+usage. La validité du fichier est contrôlable par le point d'accès dédié :
+
+\begin{lstlisting}[language=bash,numbers=none]
+gh api repos/<owner>/<repo>/codeowners/errors
+\end{lstlisting}
+\end{constat}
+
+\subsection{Modèle de \emph{pull request}}
+
+Un modèle de \emph{pull request} impose une liste de contrôle de sécurité à
+chaque contribution, couvrant la validation des entrées, le contrôle d'accès,
+les secrets, les dépendances, la journalisation, et une section spécifique au
+code produit avec l'assistance d'une IA générative, conformément à la
+section~7 du sujet.
+
+La consigne retenue est qu'une case non cochée doit être justifiée par écrit :
+une case laissée vide sans explication est traitée comme non revue.
+
+\captureaplacer{figures/p09-collaborators.png}{Page des collaborateurs du dépôt
+(Settings $\rightarrow$ Collaborators) montrant les quatre membres de l'équipe
+avec accès en écriture. À capturer après acceptation des invitations.}
+
+\section{P11 --- Revue de code}
+\label{sec:revue-code}
+
+\subsection{Protection de la branche principale}
+
+La revue de code n'est une pratique mise en œuvre que si elle est contraignante.
+La configuration appliquée à la branche \texttt{main} est la suivante.
+
+\begin{table}[H]
+\centering
+\caption{Règles de protection appliquées à la branche \texttt{main}}
+\label{tab:branch-protection}
+\small
+\begin{tabular}{@{}p{8.2cm}p{5.4cm}@{}}
+\toprule
+\textbf{Règle} & \textbf{Valeur} \\
+\midrule
+Revues approbatrices requises & 1 \\
+Revue des propriétaires du code requise & oui \\
+Invalidation des revues obsolètes après envoi & oui \\
+Approbation du dernier envoi requise & oui \\
+Contrôles d'état requis & 3, en mode strict \\
+Résolution des discussions requise & oui \\
+Envois forcés & interdits \\
+Suppression de branche & interdite \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{constat}{les noms des contrôles requis doivent correspondre exactement}
+Les trois contrôles d'état requis sont désignés par le \emph{nom} des tâches de
+la pipeline. Un renommage dans \texttt{ci.yml} détache silencieusement la règle
+de protection, qui continue d'exister tout en n'exigeant plus rien.
+
+La correspondance exacte entre les noms de tâches effectivement exécutés et les
+noms exigés par la protection a donc été vérifiée explicitement.
+\end{constat}
+
+\captureaplacer{figures/p11-branch-protection-reviews.png}{Règles de protection
+de la branche \texttt{main} (Settings $\rightarrow$ Branches $\rightarrow$ Edit) :
+exigence de \emph{pull request}, une revue approbatrice, invalidation des revues
+obsolètes, revue des propriétaires du code, approbation du dernier envoi.}
+
+\captureaplacer{figures/p11-branch-protection-status-checks.png}{Suite des règles
+de protection : les trois contrôles d'état requis, l'exigence de branche à jour,
+et l'interdiction des envois forcés et des suppressions.}
+
+\section{Difficultés rencontrées et décisions induites}
+
+Trois obstacles techniques ont été rencontrés durant cette phase. Ils sont
+rapportés ici parce qu'ils ont chacun entraîné une décision documentée, et parce
+que leur résolution fait partie du travail d'ingénierie accompli.
+
+\subsection{Protection de branche indisponible sur dépôt privé}
+
+Le dépôt a initialement été créé en mode privé, choix instinctivement plus
+prudent. Les tentatives d'activation de la protection de branche, puis des
+\emph{rulesets}, ont toutes deux échoué :
+
+\begin{lstlisting}[numbers=none,basicstyle=\ttfamily\scriptsize]
+HTTP 403 - Upgrade to GitHub Pro or make this repository public
+            to enable this feature.
+\end{lstlisting}
+
+L'offre GitHub Free n'autorise ni les branches protégées ni les \emph{rulesets}
+sur un dépôt privé. Trois options s'ouvraient : rendre le dépôt public, obtenir
+GitHub Pro gratuitement via le \emph{Student Developer Pack}, ou renoncer à la
+protection de branche.
+
+La troisième option a été écartée d'emblée : elle aurait réduit la preuve de
+deux pratiques de niveau Tier~1 de « la fusion est techniquement bloquée » à
+« nous avons rédigé un modèle », ce qui ne démontre pas un contrôle mis en
+œuvre.
+
+\begin{decision}{dépôt public (registre ADR 0004)}
+Le dépôt a été rendu public. Outre le déblocage de la protection de branche,
+ce choix apporte un bénéfice indépendant et matériel : \textbf{les minutes
+d'exécution GitHub Actions ne sont pas comptabilisées sur un dépôt public}.
+
+Ce point n'est pas accessoire. Les analyses ZAP complètes et SonarQube sont les
+étages les plus coûteux en temps, et le chapitre~\ref{chap:vulnerabilites}
+déclenche à lui seul sept exécutions complètes de la pipeline sur sept branches
+de démonstration. Sur un dépôt privé, l'allocation gratuite de 2000 minutes
+mensuelles nous aurait contraints à rationner les analyses pour des motifs
+étrangers à l'ingénierie de sécurité.
+
+La contrepartie est que le code et la configuration sont lisibles publiquement,
+ce qui est acceptable pour un travail académique sans contenu propriétaire, et
+qu'\emph{aucun} secret réel ne doit jamais entrer dans le dépôt --- ce qui
+était déjà la politique, outillée par les crochets locaux et l'analyse
+d'historique complet en CI.
+\end{decision}
+
+\subsection{Interférence avec la démonstration V2}
+
+Le passage en dépôt public active la protection contre l'envoi de secrets de
+GitHub, qui analyse les motifs propres à des fournisseurs identifiés et peut
+rejeter l'envoi.
+
+\begin{constat}{un contrôle externe peut masquer le nôtre}
+La démonstration V2 prévue au chapitre~\ref{chap:vulnerabilites} introduit
+volontairement un secret codé en dur afin que Gitleaks le détecte et fasse
+échouer la construction.
+
+Si ce secret est une clé API Google de la forme \texttt{AIza...}, GitHub rejette
+l'envoi \emph{avant} que notre pipeline ne s'exécute. Notre contrôle paraîtrait
+alors avoir échoué, alors qu'il n'aurait simplement jamais été sollicité.
+
+La démonstration V2 utilise donc le motif de secret de signature JWT, détecté
+par notre règle \texttt{generic-jwt-secret-assignment} et non reconnu par
+l'analyseur de GitHub. Les deux règles ont été vérifiées
+(section~\ref{sec:secrets}).
+
+Cette substitution améliore d'ailleurs la démonstration : un secret de signature
+codé en dur est une erreur de développement réaliste, et sa détection repose sur
+\emph{notre} configuration plutôt que sur la liste de motifs d'un tiers.
+\end{constat}
+
+\subsection{Blocage du gestionnaire d'identifiants Git}
+
+Les opérations Git distantes se sont initialement interrompues sans message.
+Le diagnostic a établi que le gestionnaire d'identifiants configuré
+(\emph{Git Credential Manager}) tentait d'afficher une boîte de dialogue
+d'authentification impossible à présenter dans le contexte d'exécution, et
+attendait indéfiniment une saisie.
+
+La résolution a consisté à router les identifiants Git par le jeton de l'outil
+en ligne de commande GitHub :
+
+\begin{lstlisting}[language=bash,numbers=none]
+gh auth setup-git
+\end{lstlisting}
+
+Ce point est consigné car les autres membres de l'équipe rencontreront le même
+obstacle au premier clonage. Il figure à ce titre dans la documentation
+d'installation.
+
+\section{Registres de décisions d'architecture}
+
+Quatre registres de décisions ont été produits durant cette phase.
+
+\begin{table}[H]
+\centering
+\caption{Registres de décisions d'architecture de la phase 0}
+\label{tab:adr-phase0}
+\small
+\begin{tabular}{@{}llp{8.2cm}@{}}
+\toprule
+\textbf{Réf.} & \textbf{Statut} & \textbf{Objet} \\
+\midrule
+ADR 0001 & Accepté & Tenue de registres de décisions d'architecture \\
+ADR 0002 & Accepté & GitHub Actions comme plate-forme CI/CD \\
+ADR 0003 & Accepté & Cadre \texttt{pre-commit} pour les crochets \emph{shift left} \\
+ADR 0004 & Accepté & Visibilité publique du dépôt et atténuation pour V2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Le registre ADR 0001 justifie la pratique elle-même. Il s'appuie sur
+l'observation que le raisonnement conduisant à une décision est ce qui s'efface
+le plus vite, et sur l'exigence de l'ASVS~5.0 relative aux décisions de sécurité
+documentées. Les registres sont immuables : une décision révisée donne lieu à un
+nouveau registre qui remplace le précédent, l'original demeurant afin que
+l'historique du raisonnement subsiste.
+
+\section{Bilan de la phase}
+
+\begin{table}[H]
+\centering
+\caption{État d'avancement à l'issue de la phase 0}
+\label{tab:bilan-phase0}
+\small
+\begin{tabular}{@{}llp{6.6cm}@{}}
+\toprule
+\textbf{Élément} & \textbf{État} & \textbf{Observation} \\
+\midrule
+Dépôt, arborescence, configuration & \fait{} & 4 commits \\
+Pipeline d'intégration continue    & \fait{} & 2 exécutions, toutes réussies \\
+Crochets \emph{pre-commit}         & \fait{} & efficacité vérifiée \\
+Règles de détection de secrets     & \fait{} & deux règles déclenchées en test \\
+Protection de branche              & \fait{} & vérifiée par API \\
+\texttt{CODEOWNERS}                & \encours{} & en attente d'acceptation des invitations \\
+Registres de décisions             & \fait{} & ADR 0001 à 0004 \\
+Captures de preuve                 & \encours{} & 1 fournie sur 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+L'ingénierie de la phase est achevée. Deux éléments de preuve restent à
+collecter : les captures des réglages de plate-forme, qui ne peuvent être
+produites que par un administrateur du dépôt et constituent la seule preuve
+qu'un contrôle est effectivement activé, et l'acceptation des invitations par
+les trois autres membres, préalable au fonctionnement effectif de l'exigence de
+revue par les propriétaires du code.
+
+Aucun de ces deux points ne bloque la phase suivante.

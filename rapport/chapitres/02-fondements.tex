@@ -1,0 +1,363 @@
+% ===========================================================================
+\chapter{Fondements et référentiels}
+\label{chap:fondements}
+% ===========================================================================
+
+\section{De DevOps à DevSecOps}
+
+DevOps est défini comme une approche organisationnelle qui met l'accent sur la
+collaboration transversale au sein et entre les équipes de développement
+logiciel, afin d'exploiter des systèmes résilients et d'accélérer la livraison
+des changements~\cite{prates2025}. Ses principes sont fréquemment résumés par
+l'acronyme CAMS : culture, automatisation, mesure et partage.
+
+DevSecOps étend ces principes en y intégrant la sécurité. Prates et Pereira
+montrent que chacun des quatre principes CAMS admet une déclinaison sécurité :
+la culture s'étend à la collaboration avec l'équipe sécurité, l'automatisation
+englobe l'automatisation des contrôles de sécurité, la mesure intègre des
+métriques de menaces et de vulnérabilités, et le partage inclut la mise en
+commun des problématiques de sécurité~\cite{prates2025}.
+
+Les auteurs considèrent DevSecOps comme une extension naturelle de DevOps,
+position également retenue par la norme IEEE~2675~\cite{ieee2675}.
+
+Le principe structurant est celui du \emph{shift security to left} : inclure les
+pratiques de sécurité dès les étapes les plus précoces du cycle de
+développement. Ce principe a une conséquence directe sur l'ordonnancement des
+travaux, exposée au chapitre~\ref{chap:phase0}.
+
+\section{Le cycle de vie DevSecOps}
+
+Prates et Pereira identifient les phases du flux DevSecOps et y rattachent
+chaque pratique~\cite{prates2025}. Les phases sont les suivantes :
+\emph{Create}, \emph{Plan}, \emph{Adapt}, \emph{Verify},
+\emph{Preproduction}, \emph{Release}, \emph{Predict}, \emph{Respond},
+\emph{Detect} et \emph{Configure}.
+
+Cette cartographie présente un intérêt pratique immédiat : elle indique
+\emph{où} dans la chaîne chaque pratique doit intervenir. Elle a servi de
+squelette à l'architecture de notre pipeline, présentée au
+chapitre~\ref{chap:archi-pipeline}.
+
+\section{La taxonomie des pratiques de Prates et Pereira}
+
+\subsection{Méthode et portée de l'étude}
+
+L'étude de référence du module est une revue de littérature multivocale
+(\emph{Multivocal Literature Review}) portant sur 103 publications
+primaires~\cite{prates2025}. Contrairement à une revue systématique classique
+limitée à la littérature académique, une revue multivocale intègre également la
+littérature grise : rapports techniques d'entreprises, pages web, livres
+blancs.
+
+La répartition des sources est quasiment équilibrée, avec 49\% de littérature
+blanche et 51\% de littérature grise, ce que les auteurs interprètent comme une
+convergence entre la recherche académique et la pratique industrielle.
+
+L'étude identifie \textbf{39 pratiques DevSecOps distinctes}.
+
+\subsection{Le classement par niveaux}
+
+Les auteurs classent ces 39 pratiques en trois niveaux selon le nombre de
+publications les mentionnant~\cite{prates2025} :
+
+\begin{itemize}
+  \item \textbf{Tier 1 --- Core} : pratiques mentionnées dans \textbf{30
+  publications ou plus}. Elles constituent les pratiques fondamentales de
+  DevSecOps.
+  \item \textbf{Tier 2 --- Important} : pratiques mentionnées dans
+  \textbf{10 à 29} publications. Également considérées comme importantes.
+  \item \textbf{Tier 3 --- Nice to have} : pratiques mentionnées dans
+  \textbf{moins de 10} publications. Interprétées comme souhaitables mais non
+  cruciales pour une mise en œuvre de DevSecOps.
+\end{itemize}
+
+Il importe de souligner que le niveau d'une pratique reflète son degré
+d'établissement dans la littérature, et \textbf{non} son caractère automatisable
+ni sa position dans la pipeline. Cette distinction a des conséquences directes,
+développées à la section~\ref{sec:pratiques-non-outillables}.
+
+\subsection{Les onze pratiques de niveau Tier 1}
+
+Le tableau~\ref{tab:tier1} présente les onze pratiques de niveau Tier~1, qui
+constituent le socle obligatoire du projet.
+
+\begin{table}[H]
+\centering
+\caption{Les onze pratiques DevSecOps de niveau Tier~1 (d'après
+Prates et Pereira~\cite{prates2025}, tableau~7)}
+\label{tab:tier1}
+\small
+\begin{tabular}{@{}llcl@{}}
+\toprule
+\textbf{Id.} & \textbf{Pratique} & \textbf{Mentions} & \textbf{Phase du cycle} \\
+\midrule
+P1  & SAST                        & 65 & Verify \\
+P2  & DAST                        & 58 & Verify \\
+P3  & Automated security testing  & 56 & Verify \\
+P4  & Vulnerability scanning      & 44 & Verify / Preproduction \\
+P5  & Continuous monitoring       & 41 & Predict / Detect \\
+P6  & Continuous integration      & 41 & Adapt \\
+P7  & Threat modelling            & 40 & Plan / Predict \\
+P8  & Shift left security         & 36 & Create \\
+P9  & Collaboration               & 36 & Create \\
+P10 & Continuous deployment       & 34 & Release \\
+P11 & Code review                 & 33 & Verify \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Les définitions retenues, reformulées d'après l'article source, sont les
+suivantes.
+
+\begin{description}[leftmargin=1.2cm,style=nextline]
+  \item[\pid{P1} SAST] Analyse du code source, du bytecode ou du binaire d'une
+  application afin d'identifier des vulnérabilités, sans exécuter le programme.
+
+  \item[\pid{P2} DAST] Test d'une application en cours d'exécution, vue de
+  l'extérieur, par envoi de requêtes et analyse des réponses, en simulant des
+  attaques réelles.
+
+  \item[\pid{P3} Automated security testing] Recours à des outils et processus
+  automatisés pour vérifier systématiquement la sécurité à différentes étapes
+  du développement. Couvre les tests d'API, les tests d'applications web et les
+  tests unitaires orientés sécurité. Cette pratique est \emph{distincte} de
+  SAST et de DAST.
+
+  \item[\pid{P4} Vulnerability scanning] Identification automatisée et continue
+  des vulnérabilités du logiciel \emph{et} de l'infrastructure, par
+  confrontation à des bases de CVE connues. L'article précise que cette pratique
+  englobe l'analyse des dépendances logicielles et celle des images de
+  conteneurs.
+
+  \item[\pid{P5} Continuous monitoring] Collecte et analyse automatisées et
+  continues des données de performance et de sécurité des systèmes en
+  fonctionnement, procurant une visibilité en temps réel.
+
+  \item[\pid{P6} Continuous integration] Intégration automatique et continue
+  des modifications de code dans un dépôt partagé, avec construction, test,
+  validation et contrôles de sécurité automatisés.
+
+  \item[\pid{P7} Threat modelling] Processus systématique et proactif
+  d'identification et d'évaluation des menaces, par analyse de la conception, de
+  l'architecture et des fonctionnalités du système.
+
+  \item[\pid{P8} Shift left security] Intégration des considérations de sécurité
+  le plus tôt possible dans le cycle de développement, plutôt qu'à la fin.
+
+  \item[\pid{P9} Collaboration] Collaboration transversale entre les équipes de
+  développement, d'exploitation et de sécurité, par décloisonnement, afin de
+  créer une culture consciente de la sécurité.
+
+  \item[\pid{P10} Continuous deployment] Construction, test et déploiement
+  automatiques et continus des modifications vers la production, les contrôles
+  de sécurité étant partie intégrante de la chaîne automatisée.
+
+  \item[\pid{P11} Code review] Examen systématique du code par des pairs ou des
+  experts afin d'identifier défauts, vulnérabilités et problèmes de qualité
+  avant fusion.
+\end{description}
+
+\subsection{Pratiques de niveau Tier 2}
+
+Le tableau~\ref{tab:tier2} recense les vingt pratiques de niveau Tier~2 et
+indique celles retenues pour ce projet.
+
+\begin{table}[H]
+\centering
+\caption{Pratiques de niveau Tier~2 et sélection retenue}
+\label{tab:tier2}
+\small
+\begin{tabular}{@{}llcl@{}}
+\toprule
+\textbf{Id.} & \textbf{Pratique} & \textbf{Mentions} & \textbf{Retenue} \\
+\midrule
+P12 & Infrastructure as code         & 28 & \fait{} oui \\
+P13 & SCA                            & 27 & \fait{} oui \\
+P14 & Security training              & 27 & \fait{} oui \\
+P15 & VCS                            & 26 & \fait{} oui \\
+P16 & Penetration testing            & 24 & \fait{} oui \\
+P17 & Continuous compliance          & 22 & \fait{} oui \\
+P18 & Logging                        & 21 & \fait{} oui \\
+P19 & IAST                           & 18 & \nonfait{} non \\
+P20 & Secure coding                  & 18 & \fait{} oui \\
+P21 & Configuration management       & 17 & optionnel \\
+P22 & Environment hardening          & 16 & \fait{} oui \\
+P23 & Risk assessment                & 15 & \fait{} oui \\
+P24 & Security requirement gathering & 13 & \fait{} oui \\
+P25 & RASP                           & 13 & \nonfait{} non \\
+P26 & Security policies              & 12 & optionnel \\
+P27 & Patch management               & 12 & \fait{} oui \\
+P28 & Security incident management   & 11 & \fait{} oui \\
+P29 & IAM                            & 11 & optionnel \\
+P30 & Secrets management             & 11 & \fait{} oui \\
+P31 & Security auditing              & 11 & \fait{} oui \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{constat}{trois pratiques fréquemment supposées Tier 1 n'en sont pas}
+L'analyse de la source corrige trois idées reçues qu'il importe de ne pas
+reproduire dans ce rapport :
+
+\begin{itemize}
+  \item \textbf{SCA} (analyse de composition logicielle) est une pratique de
+  niveau Tier~2 (\pid{P13}, 27 mentions), et non Tier~1. La pratique de niveau
+  Tier~1 qui couvre l'analyse des dépendances et des images de conteneurs est
+  \pid{P4} \emph{Vulnerability scanning}.
+  \item \textbf{Secrets management} est également de niveau Tier~2
+  (\pid{P30}, 11 mentions).
+  \item \textbf{Infrastructure as code} est de niveau Tier~2 (\pid{P12},
+  28 mentions), à deux mentions du seuil de 30.
+\end{itemize}
+
+Cette distinction a une conséquence favorable sur le projet. Le sujet exige par
+ailleurs l'emploi d'outils SAST, SCA, \emph{secret scanning} et DAST. SAST et
+DAST relevant du Tier~1 et SCA et \emph{secrets management} du Tier~2, leur
+mise en œuvre satisfait simultanément une exigence obligatoire du sujet et
+ouvre droit à la valorisation des pratiques Tier~2.
+\end{constat}
+
+\subsection{Pratiques de niveau Tier 3}
+
+Pour mémoire, les huit pratiques de niveau Tier~3 sont : \emph{Security
+champions} (8 mentions), \emph{Red team} (8), \emph{WAF} (8),
+\emph{Alerting} (7), \emph{Continuous reporting} (6), \emph{Software
+licensing} (3), \emph{Chaos engineering} (3) et \emph{Bug bounties} (2).
+
+Trois d'entre elles sont obtenues à coût marginal quasi nul dans notre
+architecture et ont été retenues à ce titre : \emph{Alerting}, fourni par la
+pile de supervision ; \emph{WAF}, par un reverse-proxy en frontal ; et
+\emph{Software licensing}, par une option de l'outil d'analyse de composition.
+
+\section{Pratiques outillables et pratiques de processus}
+\label{sec:pratiques-non-outillables}
+
+Une lecture attentive du tableau~\ref{tab:tier1} fait apparaître un point
+méthodologique essentiel : \textbf{quatre des onze pratiques de niveau Tier~1 ne
+sont pas outillables} au sens d'un analyseur produisant un rapport.
+
+\begin{table}[H]
+\centering
+\caption{Nature des pratiques Tier~1 et nature des preuves correspondantes}
+\label{tab:nature-preuves}
+\small
+\begin{tabular}{@{}p{3.4cm}p{4.6cm}p{5.6cm}@{}}
+\toprule
+\textbf{Nature} & \textbf{Pratiques} & \textbf{Nature de la preuve} \\
+\midrule
+Automatisable en
+pipeline
+& \pid{P1} SAST, \pid{P2} DAST,
+\pid{P3} tests automatisés,
+\pid{P4} scan de vulnérabilités
+& Rapport d'outil, journal
+d'exécution, échec de build \\
+\addlinespace
+Automatisable
+hors analyse
+& \pid{P6} intégration continue,
+\pid{P10} déploiement continu
+& Définition de la pipeline,
+historique d'exécutions \\
+\addlinespace
+Processus et
+organisation
+& \pid{P7} modélisation des menaces,
+\pid{P8} shift left,
+\pid{P9} collaboration,
+\pid{P11} revue de code
+& Document, configuration de
+plate-forme, fil de discussion
+de \emph{pull request} \\
+\addlinespace
+Exploitation
+& \pid{P5} supervision continue
+& Tableau de bord, alerte
+déclenchée \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cette répartition explique la formulation du sujet, qui demande d'automatiser
+l'exécution des pratiques \emph{autant que possible}. Pour les pratiques de
+processus, la preuve attendue n'est pas un rapport d'analyse mais l'artefact
+lui-même : le modèle de menaces, les règles de protection de branche, le fichier
+d'attribution de propriété du code, ou un fil de revue montrant une
+vulnérabilité discutée puis corrigée.
+
+\section{Référentiels de sécurité appliqués}
+
+\subsection{OWASP ASVS 5.0 comme référentiel de vérification}
+
+La taxonomie de Prates et Pereira indique \emph{quelles pratiques} mettre en
+œuvre dans la chaîne de production. Elle ne dit rien des propriétés de sécurité
+que l'application doit elle-même présenter. Ces deux questions sont distinctes et
+appellent deux référentiels distincts.
+
+L'ASVS~5.0~\cite{owaspasvs5} fournit le second. Il définit environ 350 exigences
+de sécurité applicative réparties en 17 chapitres, organisées en trois niveaux
+de vérification. L'ASVS précise explicitement qu'il ne prescrit ni les activités
+du cycle de développement, ni la manière dont l'application doit être construite
+par une pipeline CI/CD : il spécifie les résultats de sécurité à atteindre au
+sein du produit. Les deux référentiels sont donc complémentaires et non
+redondants.
+
+Deux apports de l'ASVS~5.0 ont particulièrement orienté le projet.
+
+Le premier est la notion de \textbf{décision de sécurité documentée}. L'ASVS
+introduit des exigences de documentation au motif que certains contrôles
+dépendent trop du contexte applicatif pour être prescrits de manière générique,
+et que sans décision écrite les exigences de mise en œuvre correspondantes ne
+sont tout simplement pas vérifiables.
+
+Le second est la position de l'ASVS sur les limites de l'outillage automatisé.
+Le référentiel indique que les outils SAST et DAST, correctement intégrés,
+peuvent détecter des problèmes de sécurité, mais qu'ils ne sont pas en mesure de
+vérifier un grand nombre des exigences les plus complexes, en particulier celles
+relatives à la logique métier et au contrôle d'accès. Il en conclut que des
+vérifications spécifiques à l'application doivent être écrites, de nature
+comparable aux tests unitaires et d'intégration.
+
+\begin{constat}{convergence des deux référentiels}
+Cette position de l'ASVS rejoint exactement la pratique \pid{P3}
+\emph{Automated security testing}, troisième pratique la plus citée de l'étude
+de Prates et Pereira avec 56 mentions, et définie comme distincte de SAST et de
+DAST.
+
+Les deux sources convergent donc vers un même livrable : une suite de tests de
+sécurité spécifiques à l'application, portant notamment sur l'autorisation et
+la logique métier. Ce livrable fait l'objet du chapitre~\ref{chap:tests}.
+\end{constat}
+
+\subsection{Niveau de vérification ASVS retenu}
+
+L'ASVS~5.0 définit trois niveaux. Le niveau~1 représente environ 20\% des
+exigences et constitue la première couche de défense. Le niveau~2 correspond au
+niveau que la majorité des applications devraient viser. Le niveau~3 s'adresse
+aux applications exigeant la plus haute assurance.
+
+Le référentiel encourage explicitement les organisations à produire une version
+adaptée à leur domaine, en écartant les chapitres non pertinents, à condition
+que le périmètre retenu et les exclusions soient justifiés dans le rapport de
+vérification.
+
+Le niveau visé par ce projet et la justification des exclusions sont présentés
+au chapitre~\ref{chap:modelisation}.
+
+\subsection{Catalogues de risques}
+
+Les catalogues de risques suivants sont pris en compte, conformément au sujet :
+
+\begin{itemize}
+  \item \textbf{OWASP Top 10:2025}~\cite{owasptop10} pour les risques
+  applicatifs web ;
+  \item \textbf{OWASP API Security Top 10}~\cite{owaspapi} pour les risques
+  propres aux API REST, avec une attention particulière à l'authentification, à
+  l'autorisation, au contrôle d'accès, à la validation des entrées, à
+  l'exposition des données et à la protection contre les abus ;
+  \item \textbf{OWASP Top 10 for LLM Applications}~\cite{owaspllm} pour les
+  risques liés aux fonctionnalités fondées sur un modèle de langage ;
+  \item \textbf{OWASP Mobile Top 10}~\cite{owaspmobile} pour l'application
+  mobile, dont le traitement est reporté à la seconde phase du projet.
+\end{itemize}

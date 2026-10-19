@@ -1,0 +1,142 @@
+% ===========================================================================
+%  RAPPORT TECHNIQUE — PROJET 3
+%  Conception et mise en oeuvre d'une pipeline DevSecOps augmentee par IA
+%  pour les applications de l'ecosysteme JavaScript (Express.js)
+%
+%  Module  : Securite des applications et des services
+%  Filiere : Cycle ingenieur IRISI 3
+%  Etablis.: Faculte des Sciences et Techniques Marrakech (UCA)
+%  Annee   : 2026/2027
+%
+%  COMPILATION : pdfLaTeX, deux passes minimum
+%                (voir README.md pour les instructions Overleaf)
+% ===========================================================================
+
+\documentclass[11pt,a4paper,oneside]{report}
+
+\input{preambule}
+
+% ---------------------------------------------------------------------------
+\begin{document}
+% ---------------------------------------------------------------------------
+
+% ===========================================================================
+%  PAGE DE GARDE
+% ===========================================================================
+\begin{titlepage}
+\centering
+
+{\large\scshape Université Cadi Ayyad}\\[2pt]
+{\large\scshape Faculté des Sciences et Techniques de Marrakech}\\[2pt]
+{\large\scshape Département d'Informatique}\\[4pt]
+\rule{\textwidth}{1pt}\\[1.2cm]
+
+{\scshape\large Cycle Ingénieur --- IRISI 3}\\[4pt]
+{\scshape Module : Sécurité des applications et des services}\\[1.6cm]
+
+{\Large\bfseries Projet du module --- Projet 3}\\[1.0cm]
+
+\rule{0.85\textwidth}{0.6pt}\\[0.5cm]
+{\huge\bfseries Conception et mise en œuvre d'une pipeline DevSecOps
+augmentée par IA}\\[0.5cm]
+{\LARGE pour les applications de l'écosystème JavaScript}\\[0.3cm]
+{\large\itshape Cas d'étude : place de marché d'articles vintage}\\[0.4cm]
+\rule{0.85\textwidth}{0.6pt}\\[1.8cm]
+
+\begin{minipage}{0.45\textwidth}
+\begin{flushleft}
+\textbf{Réalisé par :}\\[4pt]
+ELKHANFAF Mohamed\\
+ELFADIL Hanane\\
+ERRAGUIBI Abdelilah\\
+HALLOUMI Anas
+\end{flushleft}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+\begin{flushright}
+\textbf{Encadré par :}\\[4pt]
+% TODO : nom de l'enseignant encadrant
+\textit{[Nom de l'encadrant]}
+\end{flushright}
+\end{minipage}
+
+\vfill
+
+{\small\itshape Document rédigé en parallèle de la réalisation du projet.}\\[2pt]
+{\small Année universitaire 2026/2027}
+
+\end{titlepage}
+
+% ===========================================================================
+%  RESUME
+% ===========================================================================
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+\markboth{Résumé}{Résumé}
+
+Ce rapport présente la conception et la mise en œuvre d'une pipeline DevSecOps
+augmentée par intelligence artificielle, appliquée à une application web de
+l'écosystème JavaScript. Le cas d'étude retenu est une place de marché
+d'articles vintage, délibérément réduite en nombre de fonctionnalités mais
+choisie pour la richesse de sa surface d'attaque : authentification,
+autorisation fondée sur la propriété des ressources, téléversement de fichiers,
+logique métier à valeur marchande et intégration d'un modèle de langage.
+
+La démarche repose sur deux référentiels. La taxonomie des pratiques DevSecOps
+de Prates et Pereira~\cite{prates2025} fournit la liste des pratiques à mettre
+en œuvre, dont les onze pratiques de niveau Tier~1 constituent le socle
+obligatoire du projet. Le référentiel OWASP ASVS~5.0~\cite{owaspasvs5} fournit
+les exigences de sécurité applicative vérifiables et le niveau d'assurance visé.
+
+L'originalité de la démarche adoptée tient à deux choix structurants. D'une
+part, la gouvernance de sécurité est mise en place \emph{avant} toute écriture
+de code applicatif, de sorte que chaque contribution ultérieure soit contrôlée
+dès le premier envoi. D'autre part, la démonstration de l'efficacité de la
+pipeline repose sur l'introduction volontaire et contrôlée de vulnérabilités :
+une application exempte de défaut ne produit que des rapports vides, lesquels
+ne démontrent la détection d'aucune pratique.
+
+\vspace{0.6cm}
+\noindent\textbf{Mots-clés :} DevSecOps, sécurité applicative, intégration
+continue, OWASP ASVS, SAST, DAST, SCA, modélisation des menaces,
+Express.js, intelligence artificielle générative.
+
+% ===========================================================================
+%  TABLES
+% ===========================================================================
+\tableofcontents
+\listoffigures
+\listoftables
+
+% ===========================================================================
+%  CHAPITRES
+% ===========================================================================
+
+\input{chapitres/01-introduction}
+\input{chapitres/02-fondements}
+\input{chapitres/03-architecture-application}
+\input{chapitres/04-architecture-pipeline}
+\input{chapitres/05-phase0-fondations}
+
+% --- Chapitres a venir, au fur et a mesure de l'avancement du projet -------
+\input{chapitres/06-modelisation-menaces}
+\input{chapitres/07-developpement-securise}
+\input{chapitres/08-tests-securite}
+\input{chapitres/09-stages-pipeline}
+\input{chapitres/10-conteneurisation}
+\input{chapitres/11-supervision}
+\input{chapitres/12-ia}
+\input{chapitres/13-vulnerabilites}
+\input{chapitres/14-performance}
+\input{chapitres/15-limites-perspectives}
+\input{chapitres/16-conclusion}
+
+% ===========================================================================
+%  BIBLIOGRAPHIE
+% ===========================================================================
+\bibliographystyle{plain}
+\bibliography{bibliographie}
+\addcontentsline{toc}{chapter}{Bibliographie}
+
+\end{document}

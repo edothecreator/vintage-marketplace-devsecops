@@ -1,0 +1,266 @@
+% ===========================================================================
+%  PREAMBULE
+%  Paquets volontairement limites a des paquets standards disponibles
+%  sur toute distribution TeX Live / MiKTeX recente et sur Overleaf.
+% ===========================================================================
+
+% ---- Encodage et langue ---------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+
+% ---- Mise en page ---------------------------------------------------------
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\onehalfspacing
+
+% ---- Tableaux et figures --------------------------------------------------
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{caption}
+
+% ---- Couleurs et encadres -------------------------------------------------
+\usepackage{xcolor}
+\usepackage{framed}
+
+% ---- Listes ---------------------------------------------------------------
+\usepackage{enumitem}
+
+% ---- Code source ----------------------------------------------------------
+\usepackage{listings}
+
+% ---- Symboles -------------------------------------------------------------
+\usepackage{amssymb}
+\usepackage{pifont}
+
+% ---- Liens hypertexte (a charger en dernier) ------------------------------
+\usepackage[hidelinks,breaklinks=true]{hyperref}
+
+% ===========================================================================
+%  COULEURS DU DOCUMENT
+% ===========================================================================
+\definecolor{bleufonce}{RGB}{11,61,92}
+\definecolor{bleuclair}{RGB}{244,247,249}
+\definecolor{grisbord}{RGB}{180,180,180}
+\definecolor{orangeattention}{RGB}{217,145,0}
+\definecolor{jauneclair}{RGB}{255,248,230}
+\definecolor{vertfonce}{RGB}{45,107,45}
+\definecolor{vertclair}{RGB}{234,244,234}
+\definecolor{rougeplaceholder}{RGB}{176,0,32}
+\definecolor{griscode}{RGB}{245,245,245}
+\definecolor{commentairevert}{RGB}{0,110,0}
+\definecolor{chainemauve}{RGB}{140,0,140}
+
+% ===========================================================================
+%  EN-TETES ET PIEDS DE PAGE
+% ===========================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\nouppercase{\leftmark}}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyhead[R]{\small\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+% ===========================================================================
+%  STYLE DU CODE SOURCE
+% ===========================================================================
+\lstdefinestyle{stylegeneral}{
+  backgroundcolor=\color{griscode},
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{bleufonce}\bfseries,
+  commentstyle=\color{commentairevert}\itshape,
+  stringstyle=\color{chainemauve},
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  numbersep=8pt,
+  frame=single,
+  rulecolor=\color{grisbord},
+  breaklines=true,
+  breakatwhitespace=false,
+  showstringspaces=false,
+  tabsize=2,
+  captionpos=b,
+  xleftmargin=14pt,
+  framexleftmargin=14pt,
+  literate=%
+    {é}{{\'e}}1 {è}{{\`e}}1 {ê}{{\^e}}1 {ë}{{\"e}}1
+    {à}{{\`a}}1 {â}{{\^a}}1 {ô}{{\^o}}1 {î}{{\^i}}1
+    {ï}{{\"i}}1 {ù}{{\`u}}1 {û}{{\^u}}1 {ç}{{\c c}}1
+    {É}{{\'E}}1 {È}{{\`E}}1 {À}{{\`A}}1
+}
+\lstset{style=stylegeneral}
+
+\lstdefinelanguage{yamlperso}{
+  keywords={name,on,jobs,steps,uses,with,run,runs-on,permissions,
+            concurrency,if,needs,env,repos,hooks,rev,id,args},
+  sensitive=true,
+  comment=[l]{\#},
+  morestring=[b]",
+  morestring=[b]'
+}
+
+% ===========================================================================
+%  COMMANDES PERSONNALISEES
+% ===========================================================================
+
+% --- Reference a une pratique DevSecOps : \pratique{P1}{SAST}
+\newcommand{\pratique}[2]{\textbf{#1}~---~#2}
+
+% --- Identifiant de pratique seul : \pid{P1}
+\newcommand{\pid}[1]{\textbf{#1}}
+
+% --- Exigence ASVS : \asvs{8.2.2}
+\newcommand{\asvs}[1]{\mbox{\textsc{asvs}~v5.0.0--#1}}
+
+% --- Exigence ASVS courte (dans un tableau) : \asvsc{8.2.2}
+\newcommand{\asvsc}[1]{\mbox{\textsc{asvs}~#1}}
+
+% --- Risque OWASP LLM : \llm{01}
+\newcommand{\llm}[1]{\mbox{\textsc{llm}#1}}
+
+% --- Marqueurs d'etat
+\newcommand{\fait}{\textcolor{vertfonce}{\ding{51}}}
+\newcommand{\nonfait}{\textcolor{grisbord}{\ding{55}}}
+\newcommand{\encours}{\textcolor{orangeattention}{$\circlearrowright$}}
+\newcommand{\bloque}{\textcolor{rougeplaceholder}{\ding{47}}}
+
+% ===========================================================================
+%  EMPLACEMENT DE CAPTURE D'ECRAN MANQUANTE
+%  Affiche un encadre bien visible dans le PDF pour ne rien oublier.
+%  Usage : \captureaplacer{figures/nom.png}{description de la capture}
+% ===========================================================================
+\newcommand{\captureaplacer}[2]{%
+  \begin{figure}[H]
+  \centering
+  \setlength{\fboxrule}{1.2pt}%
+  \setlength{\fboxsep}{10pt}%
+  \textcolor{rougeplaceholder}{%
+    \fbox{%
+      \begin{minipage}{0.86\textwidth}
+        \centering
+        \color{rougeplaceholder}%
+        \textbf{\large CAPTURE D'ÉCRAN À AJOUTER}\\[6pt]
+        \color{black}%
+        \textbf{Fichier attendu :} \texttt{#1}\\[4pt]
+        \textbf{Contenu :} #2\\[8pt]
+        {\small\itshape Déposer l'image dans \texttt{figures/} sous ce nom
+        exact, puis remplacer \texttt{\textbackslash captureaplacer}
+        par \texttt{\textbackslash captureprete} dans le fichier source.}
+        \vspace{4pt}
+      \end{minipage}%
+    }%
+  }
+  \end{figure}
+}
+
+% ===========================================================================
+%  CAPTURE FOURNIE
+%  Usage : \captureprete{figures/nom.png}{Légende de la figure}
+%
+%  ROBUSTE PAR CONCEPTION : si le fichier image est absent, la commande
+%  affiche l'encadre de rappel au lieu de provoquer une erreur de
+%  compilation. Un fichier oublie ne peut donc pas casser le document.
+% ===========================================================================
+\newcommand{\captureprete}[2]{%
+  \IfFileExists{#1}{%
+    \begin{figure}[H]
+      \centering
+      \includegraphics[width=0.92\textwidth]{#1}
+      \caption{#2}
+    \end{figure}
+  }{%
+    \captureaplacer{#1}{#2}%
+  }%
+}
+
+% Variante en largeur reduite, meme robustesse
+\newcommand{\capturepretedemi}[2]{%
+  \IfFileExists{#1}{%
+    \begin{figure}[H]
+      \centering
+      \includegraphics[width=0.60\textwidth]{#1}
+      \caption{#2}
+    \end{figure}
+  }{%
+    \captureaplacer{#1}{#2}%
+  }%
+}
+
+% ===========================================================================
+%  ENCADRES THEMATIQUES
+% ===========================================================================
+
+% --- Encadre « decision d'architecture »
+\newenvironment{decision}[1]{%
+  \begin{framed}
+  \noindent\textcolor{bleufonce}{\textbf{Décision --- #1}}\par\vspace{2pt}
+  \small
+}{%
+  \end{framed}
+}
+
+% --- Encadre « constat / point d'attention »
+\newenvironment{constat}[1]{%
+  \begin{framed}
+  \noindent\textcolor{orangeattention}{\textbf{Constat --- #1}}\par\vspace{2pt}
+  \small
+}{%
+  \end{framed}
+}
+
+% --- Encadre « verification effectuee »
+\newenvironment{verification}[1]{%
+  \begin{framed}
+  \noindent\textcolor{vertfonce}{\textbf{Vérification --- #1}}\par\vspace{2pt}
+  \small
+}{%
+  \end{framed}
+}
+
+% ===========================================================================
+%  CHAINE DE DEMONSTRATION EXIGEE PAR LE SUJET
+%  Pratique -> Outil -> Integration -> Detection -> Resultat -> Correction
+% ===========================================================================
+\newcommand{\chainedemo}[6]{%
+  \begin{center}
+  \small
+  \begin{tabular}{@{}>{\bfseries}p{3.1cm}p{10.4cm}@{}}
+    \toprule
+    Pratique      & #1 \\
+    Outil         & #2 \\
+    Intégration   & #3 \\
+    Détection     & #4 \\
+    Résultat      & #5 \\
+    Correction    & #6 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+}
+
+% ===========================================================================
+%  DIVERS
+% ===========================================================================
+\setlist[itemize]{itemsep=2pt,topsep=4pt,parsep=0pt}
+\setlist[enumerate]{itemsep=2pt,topsep=4pt,parsep=0pt}
+
+\captionsetup{font=small,labelfont=bf}
+
+% Eviter les coupures de mots trop agressives
+\tolerance=1000
+\emergencystretch=2em
+
+% Profondeur de la table des matieres
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}

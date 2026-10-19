@@ -1,0 +1,186 @@
+% ===========================================================================
+\chapter{Architecture de l'application}
+\label{chap:archi-app}
+% ===========================================================================
+
+\begin{constat}{état de ce chapitre}
+Ce chapitre documente les choix de conception arrêtés. L'implémentation
+correspondante relève de la phase~2 et sera documentée au
+chapitre~\ref{chap:dev-securise}. Les diagrammes définitifs seront produits en
+phase~1 avec le modèle de menaces.
+\end{constat}
+
+\section{Choix du domaine fonctionnel}
+
+Le cas d'étude retenu est une \textbf{place de marché d'articles vintage} :
+des vendeurs publient des objets d'occasion uniques, des acheteurs les
+acquièrent.
+
+Ce domaine n'a pas été choisi pour son intérêt fonctionnel mais pour la
+richesse de sa surface de sécurité. Le tableau~\ref{tab:surface} justifie
+chaque fonctionnalité retenue par la catégorie de risque qu'elle permet de
+démontrer.
+
+\begin{table}[H]
+\centering
+\caption{Justification des fonctionnalités par la surface de sécurité créée}
+\label{tab:surface}
+\small
+\begin{tabular}{@{}p{3.9cm}p{4.0cm}p{6.0cm}@{}}
+\toprule
+\textbf{Fonctionnalité} & \textbf{Surface} & \textbf{Risque démontré} \\
+\midrule
+Inscription, connexion & Authentification
+& Authentification défaillante, bourrage d'identifiants, stockage faible des
+mots de passe \\
+\addlinespace
+Rôles acheteur, vendeur, administrateur & Autorisation
+& Élévation de privilèges, contrôle d'accès au niveau des fonctions \\
+\addlinespace
+Gestion par le vendeur de ses seules annonces & Propriété des ressources
+& \textbf{IDOR / BOLA} --- la démonstration centrale du projet \\
+\addlinespace
+Téléversement d'images & Fichiers non fiables
+& Téléversement malveillant, traversée de chemin, exécution côté serveur \\
+\addlinespace
+Recherche d'annonces & Entrée utilisateur en requête
+& Injection SQL, énumération, moissonnage \\
+\addlinespace
+Commande, paiement simulé & Logique métier à valeur
+& Abus de logique métier, \textbf{double vente d'un objet unique} \\
+\addlinespace
+Avis sur commande & Contenu stocké
+& XSS stocké \\
+\addlinespace
+Modération & Interface privilégiée
+& Contrôle d'accès sur fonction d'administration \\
+\addlinespace
+Génération de description par IA & Intégration d'un LLM
+& Injection d'invite, traitement non sûr de la sortie, abus de consommation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{decision}{périmètre fonctionnel gelé}
+Sont explicitement hors périmètre : le traitement réel des paiements, l'envoi de
+courriels, l'authentification fédérée et la messagerie temps réel.
+
+Aucun de ces éléments n'apporte une catégorie de risque que le périmètre retenu
+ne couvre déjà, et chacun consommerait du temps appartenant à la pipeline.
+Toute fonctionnalité ajoutée devra en remplacer une autre.
+\end{decision}
+
+\section{Composants et choix techniques}
+
+\begin{table}[H]
+\centering
+\caption{Composants de l'application}
+\label{tab:composants}
+\small
+\begin{tabular}{@{}llp{6.4cm}@{}}
+\toprule
+\textbf{Composant} & \textbf{Technologie} & \textbf{Justification} \\
+\midrule
+API métier & Express.js, TypeScript
+& Écosystème imposé par le sujet (Projet 3) ; typage statique \\
+\addlinespace
+Base de données & PostgreSQL
+& Transactions et verrouillage de ligne, nécessaires au contrôle de double
+vente \\
+\addlinespace
+Accès aux données & Prisma
+& Requêtes paramétrées par défaut, \asvsc{1.2.4} \\
+\addlinespace
+Validation & Zod
+& Validation par schéma en couche de service de confiance, \asvsc{2.2.2} \\
+\addlinespace
+Mots de passe & Argon2id
+& Fonction de dérivation approuvée, \asvsc{11.4.2} \\
+\addlinespace
+En-têtes HTTP & Helmet
+& En-têtes de sécurité du navigateur, \asvsc{3.4.x} \\
+\addlinespace
+Front-end web & React, TypeScript, Vite
+& Partage du contrat d'API et des types avec le back-end \\
+\addlinespace
+Client mobile & React Native (Expo)
+& \emph{Reporté en phase 2 du projet} ; réutilise la même API \\
+\addlinespace
+Fournisseur LLM & Google Gemini (offre gratuite)
+& Aucun coût ; quota contraint, ce qui rend le risque \llm{10} concret \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\captureaplacer{figures/architecture-composants.png}{Diagramme de composants de
+l'application : front-end web, client mobile (phase 2), API REST, base de
+données, stockage d'objets, et fournisseur LLM identifié comme frontière de
+confiance externe. À produire en phase 1.}
+
+\section{Interface de programmation REST}
+
+Le tableau~\ref{tab:api} présente la surface d'API prévue. Deux points
+d'entrée sont désignés dès la conception comme cibles des démonstrations de
+vulnérabilité du chapitre~\ref{chap:vulnerabilites}.
+
+\begin{table}[H]
+\centering
+\caption{Surface d'API REST}
+\label{tab:api}
+\small
+\begin{tabular}{@{}llp{5.9cm}@{}}
+\toprule
+\textbf{Point d'entrée} & \textbf{Accès} & \textbf{Contrôle principal} \\
+\midrule
+\texttt{POST /api/auth/register}   & public & Politique de mot de passe, limitation de débit \\
+\texttt{POST /api/auth/login}      & public & Message d'erreur générique, anti-automatisation \\
+\texttt{POST /api/auth/refresh}    & cookie & Rotation et détection de réutilisation \\
+\texttt{POST /api/auth/logout}     & authentifié & Invalidation côté serveur \\
+\texttt{GET /api/listings}         & public & Requête paramétrée, pagination \\
+\texttt{GET /api/listings/:id}     & public & Champs publics uniquement \\
+\texttt{POST /api/listings}        & vendeur & Validation, garde d'affectation de masse \\
+\texttt{PUT /api/listings/:id}     & \textbf{propriétaire} & \textbf{Cible de la démonstration V5} \\
+\texttt{DELETE /api/listings/:id}  & propriétaire & Propriété revérifiée côté serveur \\
+\texttt{POST /api/listings/:id/images} & propriétaire & Octets magiques, ré-encodage \\
+\texttt{POST /api/orders}          & acheteur & Verrou transactionnel \\
+\texttt{GET /api/orders}           & \textbf{propriétaire} & \textbf{Cible de démonstration BOLA} \\
+\texttt{POST /api/reviews}         & acheteur & Assainissement en sortie \\
+\texttt{GET /api/admin/listings}   & administrateur & Contrôle d'accès par fonction \\
+\texttt{POST /api/ai/describe}     & vendeur & Gardes d'injection, plafond de jetons \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Modèle de données}
+
+Les entités prévues sont : \texttt{User}, \texttt{Listing},
+\texttt{ListingImage}, \texttt{Order}, \texttt{Review} et
+\texttt{RefreshToken}.
+
+Une contrainte de conception mérite d'être soulignée : l'entité
+\texttt{Listing} doit porter un état permettant de distinguer un article
+disponible d'un article réservé ou vendu. Cet état est le support du contrôle de
+non-duplication de vente (\asvsc{2.3.4}), lequel constitue la particularité
+d'une place de marché d'objets uniques par rapport à un commerce de biens en
+stock.
+
+\section{Classification des données}
+
+\begin{constat}{à compléter en phase 1}
+La classification des données et les exigences de protection associées à chaque
+niveau constituent une exigence documentaire de l'ASVS (\asvsc{14.1.1} et
+\asvsc{14.1.2}). Elles seront produites en phase~1, en même temps que le modèle
+de menaces, et reportées ici.
+\end{constat}
+
+\section{Architecture indifférente au client}
+
+L'API est conçue dès l'origine pour servir indifféremment le front-end web et
+le futur client mobile. Ce choix a une conséquence pratique sur le report de
+l'application mobile exposé au chapitre~\ref{chap:introduction} : l'ensemble des
+contrôles côté serveur, le modèle de menaces, la pipeline, la suite de tests
+d'abus et les exigences ASVS côté serveur sont réutilisés sans modification.
+
+Les travaux propres au mobile se limitent au client lui-même et aux risques qui
+lui sont spécifiques --- stockage local, épinglage de certificat, intégrité de
+l'artefact --- recensés au chapitre~\ref{chap:limites}.

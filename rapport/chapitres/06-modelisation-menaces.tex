@@ -1,0 +1,32 @@
+% ===========================================================================
+\chapter{Modélisation des menaces et exigences de sécurité}
+\label{chap:modelisation}
+% ===========================================================================
+
+\begin{constat}{chapitre à rédiger --- phase 1}
+Ce chapitre documentera les livrables de la phase~1, qui ne produit
+volontairement aucun code applicatif.
+
+Contenu prévu :
+\begin{itemize}
+  \item \pid{P7} modélisation des menaces : analyse STRIDE par flux de données,
+  réalisée avec OWASP Threat Dragon~\cite{threatdragon} ;
+  \item table de traçabilité menace $\rightarrow$ mesure d'atténuation
+  $\rightarrow$ exigence ASVS ;
+  \item \pid{P23} analyse de risques : cotation vraisemblance $\times$ impact,
+  priorisation des contrôles, risques explicitement acceptés ;
+  \item \pid{P24} recueil des exigences de sécurité : niveau ASVS visé
+  (niveau~1 complet et niveau~2 ciblé sur les chapitres V2, V4, V5, V6, V8, V13
+  et V16), avec justification écrite des exclusions (V10 et V17) ;
+  \item décisions de sécurité documentées exigées par l'ASVS~5.0 : règles de
+  validation, règles d'autorisation, types de fichiers autorisés, durées de
+  session, politique de mot de passe, niveaux de protection des données,
+  inventaire de journalisation, calendrier de rotation des secrets ;
+  \item classification des données et exigences de protection associées ;
+  \item correspondance entre les risques du Top~10 OWASP pour les applications
+  LLM et les contrôles prévus.
+\end{itemize}
+
+Registres de décisions attendus : ADR~0005 (niveau ASVS), ADR~0006 (décisions
+de sécurité documentées), ADR~0007 (périmètre de l'augmentation par IA).
+\end{constat}

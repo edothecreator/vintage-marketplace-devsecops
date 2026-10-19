@@ -1,0 +1,164 @@
+% ===========================================================================
+\chapter{Introduction}
+\label{chap:introduction}
+% ===========================================================================
+
+\section{Contexte}
+
+Le rythme de livraison des logiciels s'est considérablement accéléré. Les
+organisations informatiques sont soumises à des cycles de publication toujours
+plus courts, tout en devant satisfaire des exigences non fonctionnelles
+croissantes, en particulier en matière de sécurité et de conformité. L'adoption
+de DevOps a constitué la réponse dominante à cette pression, en automatisant la
+chaîne de construction et de déploiement~\cite{prates2025}.
+
+Cette accélération a toutefois créé un déséquilibre. Lorsque la sécurité reste
+une activité de fin de cycle, elle devient soit un goulot d'étranglement, soit
+une étape escamotée. DevSecOps désigne l'intégration des pratiques de sécurité
+dans DevOps~\cite{myrbakken2017}, selon le principe du \emph{shift security to
+left} : faire intervenir la sécurité dès les premières étapes du cycle de
+développement plutôt qu'au moment de la mise en production.
+
+Le présent projet s'inscrit dans ce cadre. Il ne s'agit pas de développer une
+application riche en fonctionnalités, puis de l'auditer. Il s'agit de concevoir
+une chaîne de production logicielle dans laquelle les contrôles de sécurité sont
+automatisés, outillés, et dont l'efficacité est démontrable.
+
+\section{Problématique}
+
+Le sujet du module formule une exigence précise quant à la nature de la
+démonstration attendue : il ne suffit pas de présenter une liste d'outils, mais
+d'établir pour chaque mécanisme de sécurité la chaîne complète
+
+\begin{center}
+\textbf{Pratique de sécurité $\rightarrow$ Outil $\rightarrow$ Intégration dans
+la pipeline $\rightarrow$ Détection $\rightarrow$ Résultat $\rightarrow$ Action
+corrective}
+\end{center}
+
+Cette exigence soulève une difficulté méthodologique qui a structuré l'ensemble
+du projet et qu'il convient d'énoncer d'emblée.
+
+\begin{constat}{une application sécurisée ne démontre rien}
+Si le code produit est exempt de défaut dès le premier commit, chaque analyseur
+de la pipeline retourne un rapport vide. Or un rapport vide ne démontre les
+étapes \emph{Détection}, \emph{Résultat} et \emph{Action corrective} pour
+aucune pratique.
+
+La capacité à démontrer l'efficacité d'un contrôle suppose donc de disposer de
+détections réelles. Nous avons choisi de les produire de manière volontaire et
+contrôlée, selon la démarche décrite au chapitre~\ref{chap:vulnerabilites}.
+\end{constat}
+
+Une seconde difficulté concerne la nature même des pratiques à mettre en œuvre.
+Comme le montre le chapitre~\ref{chap:fondements}, plusieurs des pratiques de
+niveau Tier~1 ne sont pas outillables : elles relèvent du processus et de
+l'organisation. Leur mise en œuvre ne produit pas de rapport d'outil mais des
+artefacts documentaires et des configurations de plate-forme. Les traiter comme
+des étapes de pipeline aurait conduit à un inventaire incomplet.
+
+\section{Objectifs}
+
+Le projet poursuit les objectifs suivants.
+
+\begin{enumerate}
+  \item \textbf{Identifier et mettre en œuvre les onze pratiques DevSecOps de
+  niveau Tier~1} telles que définies par Prates et Pereira~\cite{prates2025},
+  en automatisant leur exécution autant que possible.
+
+  \item \textbf{Mettre en œuvre un sous-ensemble justifié de pratiques de
+  niveau Tier~2}, en précisant pour chacune son objectif, l'outil retenu, son
+  intégration dans la pipeline, les résultats obtenus et sa contribution à la
+  sécurité.
+
+  \item \textbf{Développer une application} comportant un front-end web, une
+  application mobile, un ensemble d'API REST et un back-end métier, dont la
+  sécurité est intégrée au cycle de développement.
+
+  \item \textbf{Prendre en compte les catégories de cyber-risques} issues des
+  référentiels OWASP : Top~10:2025 pour le web~\cite{owasptop10}, API
+  Security Top~10~\cite{owaspapi}, Mobile Top~10~\cite{owaspmobile} et
+  Top~10 for LLM Applications~\cite{owaspllm}.
+
+  \item \textbf{Augmenter la pipeline par l'intelligence artificielle}, tant
+  dans l'application que dans la chaîne d'intégration continue elle-même.
+
+  \item \textbf{Démontrer l'efficacité de chaque contrôle} selon la chaîne de
+  démonstration exigée, preuves à l'appui.
+
+  \item \textbf{Analyser l'impact des contrôles de sécurité sur la performance
+  de la pipeline}, et documenter les compromis retenus.
+\end{enumerate}
+
+\section{Périmètre et stratégie de réalisation}
+
+\subsection{Priorité accordée à la profondeur plutôt qu'à l'étendue}
+
+Le sujet précise que la priorité d'évaluation porte sur la qualité de la
+démarche de cybersécurité, l'automatisation des contrôles et la capacité à
+démontrer l'efficacité de la pipeline, plutôt que sur le nombre de
+fonctionnalités développées.
+
+Cette indication a été prise au sérieux. Le périmètre fonctionnel de
+l'application est volontairement restreint, et chaque fonctionnalité retenue
+l'a été parce qu'elle crée une surface de sécurité que nous devons ensuite
+défendre, outiller et démontrer. Les fonctionnalités n'apportant aucune
+catégorie de risque nouvelle ont été écartées, notamment le traitement réel des
+paiements, l'envoi de courriels et l'authentification fédérée.
+
+\subsection{Réalisation séquentielle du web puis du mobile}
+
+L'application mobile, exigée par le sujet, a été délibérément reportée à une
+seconde phase, postérieure à l'achèvement complet de l'application web et de sa
+pipeline.
+
+\begin{decision}{report de l'application mobile}
+Une application web complète dotée d'une pipeline entièrement outillée et
+documentée a davantage de valeur, au regard des critères d'évaluation énoncés,
+que deux clients partiellement achevés partageant une pipeline superficielle.
+
+Ce report n'est pas un abandon : l'architecture a été conçue dès l'origine
+autour d'une API indifférente au client, de sorte que l'ajout du client mobile
+ne nécessite aucune reprise côté serveur. Les travaux restants sont recensés
+et planifiés.
+\end{decision}
+
+\subsection{Rédaction du rapport en parallèle de la réalisation}
+
+Le présent rapport est rédigé au fur et à mesure de l'avancement, chaque phase
+achevée étant documentée immédiatement. Ce choix répond à une contrainte
+pratique : le raisonnement qui conduit à une décision technique est la première
+chose qui s'efface. Les registres de décisions d'architecture
+(\emph{Architecture Decision Records}) tenus tout au long du projet constituent
+la matière première des sections de justification de ce document.
+
+Cette démarche est par ailleurs cohérente avec les exigences de documentation
+introduites par l'ASVS~5.0~\cite{owaspasvs5}, qui demande que certaines
+décisions de sécurité soient explicitement consignées pour pouvoir être
+vérifiées.
+
+\section{Organisation du rapport}
+
+Le chapitre~\ref{chap:fondements} présente les fondements de la démarche : le
+passage de DevOps à DevSecOps, la taxonomie des pratiques retenue et les
+référentiels de sécurité appliqués. Il identifie en particulier les onze
+pratiques de niveau Tier~1.
+
+Les chapitres~\ref{chap:archi-app} et~\ref{chap:archi-pipeline} décrivent
+respectivement l'architecture de l'application et celle de la pipeline
+DevSecOps.
+
+Le chapitre~\ref{chap:phase0} documente la première phase de réalisation : la
+mise en place de la gouvernance de sécurité du dépôt, antérieure à toute
+écriture de code applicatif.
+
+Les chapitres suivants documentent les phases ultérieures au fur et à mesure de
+leur achèvement : modélisation des menaces, développement sécurisé, tests de
+sécurité automatisés, étages de sécurité de la pipeline, conteneurisation,
+supervision, augmentation par l'IA.
+
+Le chapitre~\ref{chap:vulnerabilites} présente les démonstrations de
+vulnérabilités volontaires et les corrections apportées. Le
+chapitre~\ref{chap:performance} analyse l'impact des contrôles sur la
+performance de la pipeline. Le chapitre~\ref{chap:limites} expose les limites du
+travail et les perspectives.
