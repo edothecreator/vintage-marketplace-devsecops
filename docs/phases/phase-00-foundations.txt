@@ -110,10 +110,11 @@
                  DONE. All 4 now show "Collaborator", 0 pending invitations.
                  codeowners/errors returns 0 -> code-owner review is enforced.
                  P9 and P11 are now genuinely enforced, not aspirational.
- [ ] [MOHAMED] Decide: set enforce_admins = true?
-                 Currently FALSE so the owner can bypass and is not locked out.
-                 Stronger evidence if TRUE. Recommend flipping to TRUE once at
-                 least one teammate can approve a PR.
+ [x] [MOHAMED] enforce_admins = FALSE (decide).
+                 Decision: leave OFF. Rationale: the owner must retain direct
+                 push while teammates are not yet all able to approve PRs, and
+                 for a 4-person academic project the lock-out risk outweighs the
+                 marginal evidence gain. Revisit only if required.
 
 -------------------------------------------------------------------------------
  TASKS - DOCUMENTATION

@@ -54,9 +54,15 @@ distinctif du projet.
 | Modèle retenu | `gemini-2.5-flash-lite` — allocation quotidienne la plus élevée de l'offre gratuite |
 | Quota | Compté **par projet** et non par clé ; réinitialisé à minuit heure du Pacifique |
 
-> Les valeurs de quota publiées ont évolué à plusieurs reprises durant
-> 2025–2026. Les limites effectivement observées dans la console AI Studio
-> doivent être relevées et consignées, et non reprises de la documentation.
+> **Quota confirmé suffisant pour le projet.** L'équipe a vérifié dans la
+> console AI Studio que les limites de l'offre gratuite couvrent largement les
+> besoins du projet : le plafond applicatif global de 200 appels par jour
+> (ADR 0006) est fixé délibérément sous le quota gratuit, et les besoins de
+> démonstration et de développement restent bien en deçà. Aucune montée vers
+> l'offre payante n'est nécessaire.
+>
+> Les valeurs de quota publiées ayant évolué à plusieurs reprises durant
+> 2025–2026, c'est le quota effectivement observé dans la console qui fait foi.
 
 ### Limite de conception non négociable
 
