@@ -1,4 +1,4 @@
-===============================================================================
+﻿===============================================================================
  PHASE 00 - FOUNDATIONS & REPOSITORY GOVERNANCE
 ===============================================================================
 
@@ -106,11 +106,10 @@
                  force pushes: BLOCKED
                  deletions: BLOCKED
                  conversation resolution: REQUIRED
- [!] [MOHAMED] Chase the 3 collaborators to ACCEPT their invitations
-                 BLOCKER for P9/P11 evidence. Until they accept, CODEOWNERS
-                 reports 10 errors and code-owner review does NOT function.
-                 Verify clean with:
-                   gh api repos/edothecreator/vintage-marketplace-devsecops/codeowners/errors
+ [x] [MOHAMED] Chase the 3 collaborators to ACCEPT their invitations
+                 DONE. All 4 now show "Collaborator", 0 pending invitations.
+                 codeowners/errors returns 0 -> code-owner review is enforced.
+                 P9 and P11 are now genuinely enforced, not aspirational.
  [ ] [MOHAMED] Decide: set enforce_admins = true?
                  Currently FALSE so the owner can bypass and is not locked out.
                  Stronger evidence if TRUE. Recommend flipping to TRUE once at
@@ -140,28 +139,24 @@
                  scaffold logic works.
                  File: evidence/P6-continuous-integration/01-first-pipeline-run.png
  [x] [KIRO]    .pre-commit-config.yaml + .gitleaks.toml         -> P8 P30
- [ ] [KIRO]    Terminal capture of gitleaks blocking a planted secret -> P8
-                 Re-run and save as a text/image artefact.
+ [~] [KIRO]    Terminal capture of gitleaks blocking a planted secret -> P8
+                 Rules VERIFIED (3 key formats fire). A polished terminal
+                 capture is best taken by Mohamed after key rotation, so the
+                 image shows the real AQ. format being blocked.
  [x] [KIRO]    .github/CODEOWNERS committed                    -> P9
- [ ] [MOHAMED] Screenshot: collaborators page                  -> P9
-                 WAIT until invites are accepted - pending invites prove the
-                 opposite of what is needed.
+ [x] [MOHAMED] Screenshot: collaborators page                  -> P9
+                 DONE. Shows all 4 members as "Collaborator".
                  File: evidence/P9-collaboration/01-collaborators.png
  [x] [KIRO]    .github/pull_request_template.md committed      -> P11
- [!] [MOHAMED] Screenshot: branch protection SETTINGS          -> P11
-                 First attempt REJECTED: it showed only a tooltip saying the
-                 branch is protected, not WHICH protections are active. The
-                 substance of the P11 claim is the settings themselves.
-                 Capture from:
-                   /settings/branches -> Edit on the main rule
-                 Two shots (the page is long):
-                   01-branch-protection-reviews.png
-                     require PR, 1 approval, dismiss stale, code owner review,
-                     require last push approval
-                   02-branch-protection-status-checks.png
-                     the 3 required checks, require up-to-date branches,
-                     force pushes and deletions not allowed
- [ ] [KIRO]    README.md in each evidence folder explaining the artefacts
+ [x] [MOHAMED] Screenshot: branch protection SETTINGS          -> P11
+                 DONE. Two shots captured showing the actual settings (not the
+                 earlier rejected tooltip):
+                   01-branch-protection-reviews.png       (reviews section)
+                   02-branch-protection-status-checks.png (status checks)
+                 Both confirm the settings verified earlier by API.
+                 TO DO: save the image files into rapport/figures/ and
+                 evidence/P11-code-review/ under those exact names.
+ [x] [KIRO]    README.md in each evidence folder explaining the artefacts
                  A folder of bare screenshots is not evidence.
 
 -------------------------------------------------------------------------------
@@ -172,7 +167,7 @@
  [x] Branch protection is active and verified via API
  [x] Pre-commit hooks installed and proven to block a real secret
  [x] All 4 ADRs written
- [ ] CODEOWNERS reports ZERO errors (needs invite acceptance)
+ [x] CODEOWNERS reports ZERO errors (verified: errors == 0)
  [ ] All evidence screenshots captured and committed with explanatory READMEs
 
  CURRENT VERDICT
