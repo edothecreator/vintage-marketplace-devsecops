@@ -3,7 +3,7 @@
 > **This file is the authoritative current state of the project.**
 > If context is lost, read this first. Updated at the end of every phase.
 
-**Last updated:** Phase 0 in progress
+**Last updated:** Phase 2 — backend API complete and verified end-to-end
 
 ---
 
@@ -42,9 +42,9 @@
 
 | # | Phase | Status | Practices |
 |---|---|---|---|
-| 0 | Foundations & repository governance | **IN PROGRESS** | P6 P9 P11 P15 P8 |
-| 1 | Design, threat model, ASVS scoping | not started | P7 P23 P24 |
-| 2 | Backend & REST API | not started | P20 |
+| 0 | Foundations & repository governance | **DONE** (engineering); evidence screenshots pending | P6 P9 P11 P15 P8 |
+| 1 | Design, threat model, ASVS scoping | **DONE** | P7 P23 P24 |
+| 2 | Backend & REST API | **DONE** (verified live); tests are Phase 3 | P20 |
 | 3 | Automated security test suite | not started | P3 |
 | 4 | Web front-end | not started | P20 |
 | 5 | Pipeline security stages | not started | P1 P2 P4 P13 P30 P17 |
@@ -152,3 +152,78 @@
   limits in AI Studio — published figures changed several times during 2025–26.
 - **Commit chronology is evidence.** The threat model must be committed before
   implementation commits. Do not back-date or reorder.
+
+---
+
+## Phase 1 — summary (DONE)
+
+- `docs/threat-model/` : 01-architecture, 02-data-classification,
+  03-threat-model (57 menaces STRIDE), 04-risk-assessment.
+- ADR 0005 (périmètre ASVS), 0006 (décisions de conception sécurité),
+  0007 (stratégie IA / Gemini).
+- `tasks/T01` : délégation de la modélisation de menaces (Threat Dragon).
+- Rapport : chapitre 6 rédigé.
+
+## Phase 2 — detailed checklist (DONE)
+
+Tout a été **vérifié localement** : `tsc --noEmit`, `eslint . --max-warnings=0`,
+`prettier --check`, `npm run build`, et un **test fonctionnel bout-en-bout**
+contre le serveur en exécution (voir ci-dessous).
+
+### Fondations (commits `66c309e`, `3c6bd92`, `0eb2a59`)
+- [x] Scaffold : package.json, tsconfig strict (`exactOptionalPropertyTypes`),
+      eslint + plugin security, prettier, `.env.example`, docker-compose (Postgres).
+- [x] `prisma/schema.prisma` : User, Listing, ListingImage, Order, Review, RefreshToken.
+- [x] `config/` : env (fail-fast), logger (expurgation), prisma, errors/AppError.
+- [x] Noyau d'authentification : password (Argon2id + politique), token (JWT +
+      rafraîchissement opaque), auth (rotation + détection de réutilisation).
+- [x] Intergiciels : auth (authn/authz, `requireRole`, `assertOwnership`),
+      rateLimit (4 zones), errorHandler (500 générique, détail en journal).
+
+### Couche API (commit `09ddba6`)
+- [x] Validation Zod stricte (`validation/schemas.ts`) + `validate.middleware`.
+- [x] Mappeurs DTO (minimisation de l'exposition, `dto/mappers.ts`).
+- [x] Services métier : listing, order (verrou `FOR UPDATE`), review, upload.
+- [x] `config/security.ts` : Helmet (CSP, anti-clickjacking) + CORS strict.
+- [x] Service d'upload : octets magiques + ré-encodage sharp + nom UUID (T20-T27).
+- [x] Routes : auth, listings (+ images), orders, reviews, admin, health.
+- [x] `app.ts` (composition testable) + `server.ts` (écoute + arrêt gracieux).
+
+### Base de données et hooks (commit `f1fca1e`)
+- [x] Migration initiale `20261021193217_init` appliquée et versionnée.
+- [x] `prisma/seed.ts` : 4 comptes de démonstration + annonces (refuse en prod).
+- [x] Hooks pre-commit backend ajoutés : eslint, prettier, typecheck.
+- [x] `check-json` exclut les tsconfig (JSONC) ; `storage/` ignoré par git.
+- [x] Exception Gitleaks auditable (`#gitleaks:allow`) sur le mot de passe de seed.
+
+### Documentation (commit en cours)
+- [x] `backend/openapi.yaml` : spécification + inventaire d'API (ASVS 13.1).
+- [x] `backend/README.md` : installation, scripts, carte menace -> code.
+
+### Vérification fonctionnelle bout-en-bout (preuve)
+Serveur lancé sur `:3000`, base peuplée, exercé via HTTP :
+
+| Comportement attesté | Résultat | Menace / ASVS |
+| --- | --- | --- |
+| Connexion alice/bob (seed) | 200, JWT émis, cookie httpOnly SameSite=Strict | V6/V7 |
+| Liste publique d'annonces | 200, 3 annonces seed | — |
+| **IDOR** : alice met à jour l'annonce de bob | **404** (propriété en base) | T14 / 8.2.2 |
+| Création sans jeton | **401** | V6 |
+| **Affectation de masse** : register `role=ADMIN` | **400** (Zod `.strict()`) | T40 |
+| Prix invalide (`priceCents=1`) | **400** | 2.2.1 |
+| En-têtes Helmet présents | CSP, X-Frame-Options, Referrer-Policy | V3 / T35 |
+| En-tête `authorization` expurgé des journaux | `[Redacted]` | 16.2.5 |
+| En-têtes de limitation de débit | `ratelimit: remaining=...` | 2.4.1 |
+
+> Ces résultats sont des **journaux d'exécution réels**, à joindre comme preuve
+> P20 dans le rapport (chapitre 7).
+
+### Reste à faire avant de clôturer la phase (côté Mohamed / environnement)
+- [ ] `gh secret set GEMINI_API_KEY` (pour la phase 8, non bloquant ici).
+- [ ] Captures d'écran d'évidence des phases 0/1 (branch protection, CI, collaborateurs).
+- [ ] Accepter les invitations des 3 collaborateurs (CODEOWNERS).
+
+### Prochaine étape : Phase 3 — suite de tests de sécurité automatisés (P3)
+Vitest + supertest : tests unitaires (services) et d'intégration (abus : IDOR,
+BOLA, affectation de masse, double vente, upload malveillant). C'est là que les
+comportements vérifiés manuellement ci-dessus deviennent des tests automatisés.

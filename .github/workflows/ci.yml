@@ -84,6 +84,12 @@ jobs:
 
       - name: Run pre-commit hooks
         uses: pre-commit/action@v3.0.1
+        env:
+          # Les hooks backend (eslint/prettier/tsc) exigent backend/node_modules,
+          # qui n'est pas installe dans ce job d'hygiene. Ces memes controles
+          # sont executes par le job "Build and test" apres `npm ci`. On les
+          # saute ici pour eviter une double installation et un faux echec.
+          SKIP: backend-eslint,backend-prettier,backend-typecheck
 
   # -------------------------------------------------------------------------
   # Build and test placeholder.
@@ -118,6 +124,14 @@ jobs:
         if: steps.detect.outputs.scaffold == 'true'
         working-directory: backend
         run: npm ci
+
+      # Le client Prisma est genere a partir du schema : sans cela, les types
+      # @prisma/client manquent et le typecheck/build echoue. Aucune base n'est
+      # requise pour `generate` (pure generation de code).
+      - name: Generate Prisma client
+        if: steps.detect.outputs.scaffold == 'true'
+        working-directory: backend
+        run: npx prisma generate
 
       - name: Lint
         if: steps.detect.outputs.scaffold == 'true'

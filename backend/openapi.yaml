@@ -1,0 +1,534 @@
+openapi: 3.1.0
+info:
+  title: API Place de marché vintage
+  version: 0.1.0
+  description: >
+    API REST de la place de marché vintage (Projet 3 DevSecOps).
+
+    Cette spécification sert aussi d'INVENTAIRE d'API (ASVS 13.1) : chaque
+    endpoint, sa méthode d'authentification et son modèle d'autorisation y sont
+    documentés. Les contrôles de sécurité (authn/authz, limitation de débit,
+    validation) sont indiqués par endpoint.
+  contact:
+    name: Équipe Projet 3 — IRISI 3, FST Marrakech
+
+servers:
+  - url: http://localhost:3000
+    description: Développement local
+
+tags:
+  - name: Auth
+    description: Authentification et sessions (ASVS V6, V7)
+  - name: Listings
+    description: Annonces (ASVS V8 — IDOR/BOLA)
+  - name: Orders
+    description: Commandes (verrou anti double-vente, BOLA)
+  - name: Reviews
+    description: Avis
+  - name: Admin
+    description: Modération (rôle ADMIN requis)
+  - name: System
+    description: Santé et disponibilité
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Jeton d'accès JWT court (15 min), signé HS256, vérifié avec liste
+        d'algorithmes stricte. À présenter via `Authorization: Bearer <jeton>`.
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+      description: >
+        Jeton de rafraîchissement opaque, cookie httpOnly + SameSite=Strict,
+        rotation à chaque usage avec détection de réutilisation.
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: FORBIDDEN }
+            message: { type: string, example: Accès refusé. }
+            details:
+              type: object
+              nullable: true
+    PublicUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [BUYER, SELLER, ADMIN] }
+    AuthResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        user: { $ref: '#/components/schemas/PublicUser' }
+    PublicListing:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        priceCents: { type: integer }
+        status: { type: string, enum: [AVAILABLE, RESERVED, SOLD, REMOVED] }
+        createdAt: { type: string, format: date-time }
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              url: { type: string }
+    PrivateOrder:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        listingId: { type: string, format: uuid }
+        buyerId: { type: string, format: uuid }
+        status: { type: string, enum: [PENDING, COMPLETED, CANCELLED] }
+        shippingAddress: { type: string }
+        priceCents: { type: integer }
+        createdAt: { type: string, format: date-time }
+    PublicReview:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+
+  responses:
+    Unauthorized:
+      description: Non authentifié (jeton absent, invalide ou expiré).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authentifié mais non autorisé (rôle ou propriété).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Ressource introuvable (ou dissimulée pour cause d'autorisation).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Entrée invalide (schéma Zod, champs inconnus rejetés).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: Limite de débit dépassée (anti-automatisation).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Vivacité du processus
+      security: []
+      responses:
+        '200':
+          description: Le service répond.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { status: { type: string, example: ok } }
+
+  /ready:
+    get:
+      tags: [System]
+      summary: Disponibilité (base de données joignable)
+      security: []
+      responses:
+        '200': { description: Prêt. }
+        '503': { description: Dépendance indisponible. }
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Inscription
+      description: >
+        Le rôle n'est JAMAIS accepté du client (défense anti affectation de
+        masse). Validation stricte, limitation de débit auth.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8, maxLength: 128 }
+      responses:
+        '201':
+          description: Compte créé, session émise (cookie de rafraîchissement posé).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409':
+          description: Impossible de créer le compte (message générique, anti-énumération).
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Connexion
+      description: >
+        Message d'erreur générique et temps de réponse homogène (anti-énumération
+        de comptes). Limitation de débit auth stricte.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Connecté, session émise.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rafraîchissement de session (rotation + détection de réutilisation)
+      security:
+        - refreshCookie: []
+      responses:
+        '200':
+          description: Nouvelle paire de jetons émise, ancien rafraîchissement révoqué.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Déconnexion (révocation du jeton de rafraîchissement)
+      security:
+        - refreshCookie: []
+      responses:
+        '204': { description: Déconnecté. }
+
+  /api/listings:
+    get:
+      tags: [Listings]
+      summary: Liste paginée + recherche
+      description: Public. Pagination bornée (anti-moissonnage), limitation de débit recherche.
+      security: []
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Page d'annonces disponibles.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/PublicListing' }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer }
+        '400': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Listings]
+      summary: Créer une annonce
+      description: Authentifié. Le vendeur est déduit du jeton, jamais du corps.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, priceCents]
+              properties:
+                title: { type: string, minLength: 3, maxLength: 120 }
+                description: { type: string, maxLength: 4000 }
+                priceCents: { type: integer, minimum: 100, maximum: 10000000 }
+      responses:
+        '201':
+          description: Annonce créée.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicListing' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/listings/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Listings]
+      summary: Détail d'une annonce
+      security: []
+      responses:
+        '200':
+          description: Annonce.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicListing' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Listings]
+      summary: Mettre à jour une annonce (propriétaire uniquement)
+      description: >
+        CIBLE DE DÉMONSTRATION IDOR (phase 9). La propriété est résolue en base
+        et comparée à l'utilisateur du jeton ; un non-propriétaire reçoit 404.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                title: { type: string, minLength: 3, maxLength: 120 }
+                description: { type: string, maxLength: 4000 }
+                priceCents: { type: integer, minimum: 100, maximum: 10000000 }
+      responses:
+        '200':
+          description: Annonce mise à jour.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicListing' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Listings]
+      summary: Retirer une annonce (propriétaire uniquement)
+      security:
+        - bearerAuth: []
+      responses:
+        '204': { description: Annonce retirée (statut REMOVED). }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/listings/{id}/images:
+    post:
+      tags: [Listings]
+      summary: Téléverser une image (propriétaire uniquement)
+      description: >
+        Corps = octets bruts de l'image. Défense en profondeur : limite de
+        taille, vérification des octets magiques (le Content-Type n'est pas de
+        confiance), ré-encodage via sharp (supprime tout payload/EXIF), nom de
+        stockage interne (UUID). SVG refusé.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          image/jpeg: { schema: { type: string, format: binary } }
+          image/png: { schema: { type: string, format: binary } }
+          image/webp: { schema: { type: string, format: binary } }
+      responses:
+        '201':
+          description: Image stockée (ré-encodée en WebP).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  storedFilename: { type: string }
+                  mimeType: { type: string }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { description: Fichier trop volumineux. }
+
+  /api/orders:
+    post:
+      tags: [Orders]
+      summary: Passer une commande
+      description: >
+        Le prix n'est PAS accepté du client (lu en base sous verrou). Verrou
+        pessimiste SELECT ... FOR UPDATE : deux commandes concurrentes sur le
+        même article unique ne peuvent pas aboutir toutes les deux (la seconde
+        reçoit 409).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [listingId, shippingAddress]
+              properties:
+                listingId: { type: string, format: uuid }
+                shippingAddress: { type: string, minLength: 5, maxLength: 500 }
+      responses:
+        '201':
+          description: Commande créée.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateOrder' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Article plus disponible (déjà vendu). }
+    get:
+      tags: [Orders]
+      summary: Mes commandes
+      description: >
+        CIBLE DE DÉMONSTRATION BOLA (phase 9). Filtre strict par buyerId du
+        jeton : un acheteur ne voit jamais les commandes d'un autre.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Commandes de l'acheteur courant.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/PrivateOrder' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/orders/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Orders]
+      summary: Détail d'une commande (acheteur ou vendeur concerné)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Commande.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrivateOrder' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/reviews:
+    post:
+      tags: [Reviews]
+      summary: Déposer un avis
+      description: >
+        Seul l'acheteur d'une commande FINALISÉE peut la noter, une seule fois.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, rating]
+              properties:
+                orderId: { type: string, format: uuid }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                body: { type: string, maxLength: 2000 }
+      responses:
+        '201':
+          description: Avis créé.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicReview' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Un avis existe déjà, ou commande non finalisée. }
+
+  /api/reviews/seller/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Reviews]
+      summary: Avis publics reçus par un vendeur
+      security: []
+      responses:
+        '200':
+          description: Liste d'avis.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/PublicReview' }
+
+  /api/admin/listings:
+    get:
+      tags: [Admin]
+      summary: Vue de modération (toutes annonces, tous statuts)
+      description: Rôle ADMIN requis (autorisation au niveau fonction).
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Annonces (vue admin).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/PublicListing' }
+                  page: { type: integer }
+                  total: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/listings/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Admin]
+      summary: Retirer une annonce (modération)
+      description: Rôle ADMIN requis. Action journalisée (moderation.action).
+      security:
+        - bearerAuth: []
+      responses:
+        '204': { description: Annonce retirée. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
