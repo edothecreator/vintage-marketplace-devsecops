@@ -15,7 +15,7 @@
 //   - l'application au niveau fonction (rôle) et au niveau donnée (propriété)
 //     sont deux contrôles distincts et complémentaires
 
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { Request, NextFunction, RequestHandler } from 'express';
 import type { Role } from '@prisma/client';
 import { verifyAccessToken } from '../services/token.service.js';
 import { UnauthorizedError, ForbiddenError } from '../errors/AppError.js';

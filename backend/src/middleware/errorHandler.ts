@@ -41,7 +41,8 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     resource: req.originalUrl,
     action: req.method,
   });
-  logger.error({ err, url: req.originalUrl, method: req.method }, 'unhandled error');
+  const errorForLog: unknown = err;
+  logger.error({ err: errorForLog, url: req.originalUrl, method: req.method }, 'unhandled error');
 
   res.status(500).json({
     error: { code: 'INTERNAL_ERROR', message: 'Une erreur interne est survenue.' },

@@ -8,7 +8,7 @@
 //     clé dans les journaux (ASVS 16.2.5, données N3)
 
 import { pino } from 'pino';
-import { env, isProduction, isTest } from './env.js';
+import { isProduction, isTest } from './env.js';
 
 export const logger = pino({
   level: isTest ? 'silent' : isProduction ? 'info' : 'debug',
