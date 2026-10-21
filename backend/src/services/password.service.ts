@@ -16,13 +16,7 @@ const MIN_LENGTH = 8;
 const MAX_LENGTH = 128;
 
 // Mots interdits propres au contexte (ASVS 6.1.2, menace T08).
-const CONTEXT_FORBIDDEN = [
-  'vintage',
-  'marketplace',
-  'elkhanfaf',
-  'irisi',
-  'devsecops',
-];
+const CONTEXT_FORBIDDEN = ['vintage', 'marketplace', 'elkhanfaf', 'irisi', 'devsecops'];
 
 // Paramètres Argon2id. argon2id est le variant recommandé ; les paramètres
 // par défaut de la bibliothèque respectent RFC 9106. On fixe explicitement un

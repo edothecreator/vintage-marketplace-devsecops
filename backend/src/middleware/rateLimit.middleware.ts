@@ -11,18 +11,16 @@
 import rateLimit, { type RateLimitRequestHandler } from 'express-rate-limit';
 import { logSecurityEvent } from '../config/logger.js';
 
-function build(opts: {
-  windowMs: number;
-  limit: number;
-  name: string;
-}): RateLimitRequestHandler {
+function build(opts: { windowMs: number; limit: number; name: string }): RateLimitRequestHandler {
   return rateLimit({
     windowMs: opts.windowMs,
     limit: opts.limit,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     // Message générique (pas de détail exploitable).
-    message: { error: { code: 'TOO_MANY_REQUESTS', message: 'Trop de requêtes. Réessayez plus tard.' } },
+    message: {
+      error: { code: 'TOO_MANY_REQUESTS', message: 'Trop de requêtes. Réessayez plus tard.' },
+    },
     handler: (req, res, _next, options) => {
       logSecurityEvent('ratelimit.triggered', {
         ip: req.ip,

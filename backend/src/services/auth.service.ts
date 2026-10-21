@@ -10,16 +10,8 @@
 
 import { addDays } from '../utils/time.js';
 import { prisma } from '../config/prisma.js';
-import {
-  hashPassword,
-  verifyPassword,
-  validatePasswordPolicy,
-} from './password.service.js';
-import {
-  signAccessToken,
-  generateRefreshToken,
-  hashRefreshToken,
-} from './token.service.js';
+import { hashPassword, verifyPassword, validatePasswordPolicy } from './password.service.js';
+import { signAccessToken, generateRefreshToken, hashRefreshToken } from './token.service.js';
 import { UnauthorizedError, ConflictError } from '../errors/AppError.js';
 import { logSecurityEvent } from '../config/logger.js';
 import type { Role, User } from '@prisma/client';
@@ -51,7 +43,7 @@ export async function register(
   if (existing) {
     // On renvoie un conflit générique. On ne précise pas « e-mail déjà
     // utilisé » de manière exploitable pour énumérer (ASVS 6.3.8).
-    throw new ConflictError("Impossible de créer le compte avec ces informations.");
+    throw new ConflictError('Impossible de créer le compte avec ces informations.');
   }
 
   const passwordHash = await hashPassword(password);
@@ -120,10 +112,7 @@ async function issueSession(user: User): Promise<AuthResult> {
  * jeton a été utilisé deux fois) : on révoque alors TOUS les jetons de
  * l'utilisateur (menace T07).
  */
-export async function refresh(
-  presentedToken: string,
-  ip: string | undefined,
-): Promise<AuthResult> {
+export async function refresh(presentedToken: string, ip: string | undefined): Promise<AuthResult> {
   const tokenHash = hashRefreshToken(presentedToken);
   const stored = await prisma.refreshToken.findUnique({
     where: { tokenHash },

@@ -29,9 +29,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
 
   // Erreur applicative attendue -> message public
   if (err instanceof AppError) {
-    res
-      .status(err.statusCode)
-      .json({ error: { code: err.code, message: err.publicMessage } });
+    res.status(err.statusCode).json({ error: { code: err.code, message: err.publicMessage } });
     return;
   }
 
