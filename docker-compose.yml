@@ -1,0 +1,34 @@
+# =============================================================================
+#  Environnement de developpement local
+#  Phase 2 : base de donnees uniquement. Les services applicatifs et la
+#  supervision sont ajoutes aux phases 6 et 7.
+#
+#  Pratique : P22 Environment hardening (debut), P12 Infrastructure as code
+# =============================================================================
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: marketplace-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace_dev_pw
+      POSTGRES_DB: marketplace
+    ports:
+      # Expose uniquement sur l'interface locale, pas sur 0.0.0.0
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - marketplace_pgdata:/var/lib/postgresql/data
+    # Durcissement de base (ASVS 14.1, defense en profondeur)
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  marketplace_pgdata:
+    name: marketplace_pgdata

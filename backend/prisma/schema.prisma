@@ -1,0 +1,162 @@
+// =============================================================================
+//  Schema de donnees — place de marche vintage
+//  Reference : docs/threat-model/01-architecture.md (modele de donnees)
+//
+//  Prisma genere des requetes parametrees par defaut : c'est la mesure
+//  d'attenuation de la menace T10 (injection SQL), ASVS 1.2.4.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+//  Utilisateur
+// -----------------------------------------------------------------------------
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  // Empreinte Argon2id uniquement. Le mot de passe en clair n'est jamais
+  // stocke ni journalise (ASVS 11.4.2, donnee de niveau N3).
+  passwordHash String
+  role         Role     @default(BUYER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  listings      Listing[]
+  orders        Order[]
+  reviews       Review[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+// -----------------------------------------------------------------------------
+//  Annonce
+// -----------------------------------------------------------------------------
+enum ListingStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  REMOVED
+}
+
+model Listing {
+  id          String        @id @default(uuid()) @db.Uuid
+  // Proprietaire. Toute decision d'autorisation sur une annonce est resolue
+  // a partir de ce champ, cote serveur (ASVS 8.2.2, 8.3.1). Jamais accepte
+  // depuis le corps d'une requete.
+  sellerId    String        @db.Uuid
+  title       String
+  description String
+  priceCents  Int
+  // L'etat est le support du controle de non-duplication de vente (T28).
+  // Les articles vintage etant uniques, un objet ne peut passer qu'une fois
+  // de AVAILABLE a SOLD, sous verrou transactionnel (ASVS 2.3.4).
+  status      ListingStatus @default(AVAILABLE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  seller User           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  images ListingImage[]
+  order  Order?
+
+  @@index([sellerId])
+  @@index([status])
+  @@map("listings")
+}
+
+model ListingImage {
+  id             String   @id @default(uuid()) @db.Uuid
+  listingId      String   @db.Uuid
+  // Nom de stockage genere en interne (UUID). Le nom fourni par l'utilisateur
+  // n'est jamais utilise comme chemin (ASVS 5.3.2, menaces T22).
+  storedFilename String
+  mimeType       String
+  createdAt      DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("listing_images")
+}
+
+// -----------------------------------------------------------------------------
+//  Commande
+// -----------------------------------------------------------------------------
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id        String      @id @default(uuid()) @db.Uuid
+  // Relation 1-1 avec l'annonce : un article unique ne peut etre commande
+  // qu'une seule fois (contrainte d'unicite + verrou applicatif).
+  listingId String      @unique @db.Uuid
+  buyerId   String      @db.Uuid
+  status    OrderStatus @default(PENDING)
+  // Adresse de livraison : donnee N2, visible uniquement de l'acheteur et du
+  // vendeur concernes (ASVS 8.2.3).
+  shippingAddress String
+  priceCents      Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  buyer   User    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  review  Review?
+
+  @@index([buyerId])
+  @@map("orders")
+}
+
+// -----------------------------------------------------------------------------
+//  Avis
+// -----------------------------------------------------------------------------
+model Review {
+  id       String @id @default(uuid()) @db.Uuid
+  // Un avis est lie a une commande aboutie de son auteur (ASVS 2.3.1).
+  orderId  String @unique @db.Uuid
+  authorId String @db.Uuid
+  rating   Int // valide 1..5 au niveau applicatif (ASVS 2.2.1)
+  body     String
+  createdAt DateTime @default(now())
+
+  order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+// -----------------------------------------------------------------------------
+//  Jeton de rafraichissement (session avec etat cote serveur)
+// -----------------------------------------------------------------------------
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  // Empreinte du jeton, jamais le jeton en clair (meme logique que les mots
+  // de passe). Permet la revocation et la detection de reutilisation (T07,
+  // ASVS 7.4.1).
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
