@@ -1,5 +1,10 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // L'emission de production ne compile que src/ : rootDir fixe la structure
+    // de sortie sous dist/. prisma/seed.ts n'est pas compile (execute via tsx).
+    "rootDir": "./src"
+  },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts"]
 }

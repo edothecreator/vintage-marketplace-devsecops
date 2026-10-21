@@ -5,7 +5,9 @@
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    // rootDir n'est pas fixe ici : ce tsconfig sert au typecheck (--noEmit) et
+    // couvre src/, tests/ et prisma/ (ex. prisma/seed.ts importe depuis src/).
+    // rootDir ne concerne que l'emission, defini dans tsconfig.build.json.
 
     "strict": true,
     "noImplicitAny": true,

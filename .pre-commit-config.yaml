@@ -51,7 +51,9 @@ repos:
       # Structural validation of config we depend on.
       - id: check-yaml
       - id: check-json
-        exclude: ^\.vscode/
+        # tsconfig*.json est du JSONC (commentaires autorises par TypeScript) :
+        # exclu du validateur JSON strict. .vscode/ egalement en JSONC.
+        exclude: ^\.vscode/|(^|/)tsconfig(\..+)?\.json$
 
       # Catch accidentally committed .env files that slipped past .gitignore.
       - id: forbid-new-submodules
@@ -77,10 +79,33 @@ repos:
         files: (^|/)\.env($|\.)
         exclude: \.env\.example$
 
-# -------------------------------------------------------------------------
-# Added in Phase 2, once package.json exists:
-#   - ESLint with eslint-plugin-security (P20 Secure coding)
-#   - Prettier formatting
-#   - TypeScript type check on staged files
-# Deliberately omitted now: these hooks would fail on an empty project.
-# -------------------------------------------------------------------------
+      # -----------------------------------------------------------------------
+      # Qualite et securite du code backend (ajoutes en phase 2).
+      # Ces hooks ne s'executent que si des fichiers backend/ sont touches.
+      # SAST approfondi, SCA et DAST restent en CI : trop lents pour le commit.
+      # -----------------------------------------------------------------------
+
+      # ESLint + eslint-plugin-security (P20, P8 shift left). --max-warnings=0
+      # aligne le hook sur la porte CI : zero avertissement tolere.
+      - id: backend-eslint
+        name: eslint backend (--max-warnings=0, plugin security)
+        entry: bash -c 'cd backend && npx eslint . --max-warnings=0'
+        language: system
+        files: ^backend/.*\.(ts|cjs|js)$
+        pass_filenames: false
+
+      # Prettier : coherence de format (evite les diffs de style parasites).
+      - id: backend-prettier
+        name: prettier backend (--check)
+        entry: bash -c 'cd backend && npx prettier --check "src/**/*.ts"'
+        language: system
+        files: ^backend/src/.*\.ts$
+        pass_filenames: false
+
+      # Verification de types TypeScript stricte sur l'ensemble du backend.
+      - id: backend-typecheck
+        name: tsc backend (--noEmit, strict)
+        entry: bash -c 'cd backend && npx tsc --noEmit'
+        language: system
+        files: ^backend/.*\.ts$
+        pass_filenames: false

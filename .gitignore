@@ -53,6 +53,10 @@ trivy-cache/
 Thumbs.db
 desktop.ini
 
+# ---- Runtime storage (uploaded files) ----
+# Les images televersees sont des artefacts d'execution, pas du code source.
+backend/storage/
+
 # ---- Docker ----
 docker-compose.override.yml
 
